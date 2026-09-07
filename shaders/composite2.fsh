@@ -25,6 +25,10 @@
 #define GODRAY_DECAY      0.94 // [0.88 0.91 0.94 0.96 0.98]
 #define GODRAY_EXPOSURE   0.50 // [0.25 0.35 0.50 0.70 1.00]
 
+// pre-computed float versions for the march loop (some drivers reject
+// float(INT_LITERAL) casts in #version 120)
+#define GODRAY_SAMPLES_F  64.0
+
 uniform sampler2D colortex1;
 uniform vec3 sunPosition;            // view-space direction to sun
 uniform mat4 gbufferProjection;
@@ -62,7 +66,7 @@ void main() {
         vis *= edge.x * edge.y;
 
         if (vis > 0.001) {
-            vec2 dir = (sunScreen - texcoord) * (GODRAY_DENSITY / float(GODRAY_SAMPLES));
+            vec2 dir = (sunScreen - texcoord) * (GODRAY_DENSITY / GODRAY_SAMPLES_F);
 
             vec2 sampleUV = texcoord;
             float illum = 1.0;
@@ -74,7 +78,7 @@ void main() {
                 illum  *= GODRAY_DECAY;
             }
 
-            shafts *= GODRAY_EXPOSURE / float(GODRAY_SAMPLES);
+            shafts *= GODRAY_EXPOSURE / GODRAY_SAMPLES_F;
 
             // warm sunlight tint, stronger warmth at low sun angles
             float lowSun = 1.0 - smoothstep(0.0, 0.55, sunUp);

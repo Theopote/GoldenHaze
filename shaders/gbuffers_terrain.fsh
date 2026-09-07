@@ -18,7 +18,7 @@ varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 viewPos;
-varying float entityId;
+varying float blockId;
 
 /* DRAWBUFFERS:01 */
 
@@ -48,7 +48,7 @@ void main() {
     // individual leaves as they sway. Scaled by sky light so it only
     // sparkles where the sun can actually reach, never in caves.
     float sparkle = 0.0;
-    if (entityId > 0.5 && entityId < 1.5) {
+    if (blockId > 0.5 && blockId < 1.5) {
         vec2 sp  = viewPos.xz * 2.5 + viewPos.yy * 1.7;
         float n1 = vnoise(sp * 3.0 + frameTimeCounter * vec2(0.9, 0.4));
         float n2 = vnoise(sp * 5.0 - frameTimeCounter * vec2(0.6, 0.8));

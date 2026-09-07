@@ -21,7 +21,7 @@
 #version 120
 
 #define ENABLE_CLOUDS // toggle in the shader options GUI
-#define CLOUD_COVERAGE 0.55 // [0.35 0.45 0.55 0.65 0.75]
+#define CLOUD_COVERAGE 0.45 // [0.25 0.35 0.45 0.55 0.65]
 
 uniform vec3 sunPosition;      // view-space direction toward the sun
 uniform float rainStrength;    // 0..1, dull the sky when it rains
@@ -55,6 +55,18 @@ float fbm(vec2 p) {
     return v;
 }
 
+// large-scale cloud density with domain warp: warping the sample
+// position by another fbm makes noise blobs clump into big rounded
+// cumulus puffs instead of uniform fuzz
+float cloudDensity(vec2 p) {
+    vec2 warp = vec2(fbm(p * 0.35 + vec2(5.2, 1.3)),
+                     fbm(p * 0.35 + vec2(8.1, 9.7))) * 1.4;
+    float n = fbm(p * 0.55 + warp);
+    // bias toward discrete blobs: push mid values down so clouds
+    // separate into distinct masses with clean sky between them
+    return n * 1.25 - 0.12;
+}
+
 void main() {
     vec3  dir   = normalize(viewDir);
     float up    = dir.y;
@@ -85,47 +97,58 @@ void main() {
 
 #ifdef ENABLE_CLOUDS
     // clouds only live above the horizon; fade them into the haze band
-    float cloudFade = smoothstep(0.03, 0.18, up);
+    float cloudFade = smoothstep(0.02, 0.12, up);
     if (cloudFade > 0.001) {
-        // project the view dir onto an imaginary cloud plane overhead
-        vec2 cp   = dir.xz / max(up, 0.05) * 1.6;
-        vec2 wind = vec2(frameTimeCounter * 0.008,
-                         frameTimeCounter * 0.0025);
-        float n = fbm(cp * 0.9 + wind);
+        // project the view dir onto an imaginary cloud plane overhead;
+        // the 0.35 scale makes cloud masses big (Ghibli cumulus)
+        vec2 cp   = dir.xz / max(up, 0.06) * 0.9;
+        vec2 wind = vec2(frameTimeCounter * 0.006,
+                         frameTimeCounter * 0.0018);
+        float n = cloudDensity(cp + wind);
 
-        float cover = smoothstep(0.75 - CLOUD_COVERAGE,
-                                 1.25 - CLOUD_COVERAGE, n);
+        // soft, wide coverage ramp -> rounded puffy edges, and a
+        // flatter bottom: bias density down near the cloud base so
+        // undersides flatten like real cumulus
+        float cover = smoothstep(1.0 - CLOUD_COVERAGE * 0.8,
+                                 1.45 - CLOUD_COVERAGE * 0.8, n);
         cover *= cloudFade;
 
-        if (cover > 0.001) {
-            // sun-lit rims: resample the noise shifted sunward; where
-            // density drops off toward the sun, the rim lights up
-            vec2  sunStep = normalize(sunPosition.xz + vec2(0.0, 1e-4)) * 0.18;
-            float rim = clamp((n - fbm(cp * 0.9 + wind + sunStep)) * 6.0,
-                              -1.0, 1.0);
+        if (cover > 0.002) {
+            // volume shading: a second density read slightly sunward
+            // approximates light passing through the cloud — rims
+            // facing the sun catch light, cores stay in cool shadow
+            vec2  sunStep  = normalize(sunPosition.xz + vec2(0.0, 0.0001)) * 0.25;
+            float nSun     = cloudDensity(cp + wind + sunStep);
+            float rim      = clamp((n - nSun) * 4.0, -1.0, 1.0);
+            float thick    = smoothstep(0.1, 0.9, cover); // core vs edge
 
-            // cloud palette: cool gray-violet shadow, warm gold lit side
-            vec3 cloudShadow = mix(vec3(0.05, 0.05, 0.10),
-                                   vec3(0.52, 0.55, 0.68), day);
-            cloudShadow = mix(cloudShadow, vec3(0.40, 0.30, 0.45), sunset * 0.5);
-            vec3 cloudLit = mix(vec3(0.06, 0.06, 0.12),
-                                vec3(1.05, 0.95, 0.82), day);
-            cloudLit = mix(cloudLit, vec3(1.10, 0.55, 0.30), sunset);
+            // Ghibli palette: big value gap between cool gray-violet
+            // shadow and warm cream lit side; sunset stains the
+            // undersides gold-red
+            vec3 cloudShadow = mix(vec3(0.06, 0.06, 0.13),
+                                   vec3(0.45, 0.47, 0.62), day);
+            cloudShadow = mix(cloudShadow, vec3(0.45, 0.30, 0.42), sunset * 0.6);
+            vec3 cloudLit = mix(vec3(0.07, 0.07, 0.14),
+                                vec3(1.10, 1.02, 0.90), day);
+            cloudLit = mix(cloudLit, vec3(1.15, 0.62, 0.35), sunset);
 
-            float litFactor = clamp(0.55 + rim * 0.9 * max(day, sunset), 0.0, 1.0);
+            // thick cores read as shadow regardless of rim; edges
+            // and sun-facing sides go bright
+            float litFactor = clamp(0.35 + rim * 1.1 * max(day, sunset)
+                                    - thick * 0.5 + 0.25, 0.0, 1.0);
             vec3 cloudCol = mix(cloudShadow, cloudLit, litFactor);
 
-            // warm bounce on cloud bottoms near the horizon
-            cloudCol = mix(cloudCol, horizonCol * 1.05,
-                           (1.0 - up) * 0.35 * max(day, sunset));
+            // golden under-lighting at sunset / warm horizon bounce
+            cloudCol = mix(cloudCol, sunsetHorizon * 1.1,
+                           (1.0 - up) * (1.0 - thick) * 0.5 * max(day, sunset));
             cloudCol = mix(cloudCol, vec3(dot(cloudCol, vec3(0.333))) * 0.5,
                            rainStrength * 0.7);
 
-            sky = mix(sky, cloudCol, cover * 0.92);
+            sky = mix(sky, cloudCol, cover * 0.95);
 
-            // sun-facing rims glow a little into the bloom buffer
-            cloudGlowCol = cloudCol;
-            cloudGlow    = cover * max(rim, 0.0) * max(day, sunset) * 0.6;
+            // sun-facing rims glow into the bloom buffer
+            cloudGlowCol = cloudLit;
+            cloudGlow    = cover * max(rim, 0.0) * max(day, sunset) * 0.8;
         }
     }
 #endif

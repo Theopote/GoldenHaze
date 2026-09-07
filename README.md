@@ -47,10 +47,13 @@ GoldenHaze/
 
 ## 已知限制 / 下一步
 
-- 没有水面/树叶随时间摆动的高光闪烁(需要新建 block.properties,
-  用 mc_Entity 识别树叶方块)。
-- 颗粒还是伪随机噪声,未换成真实画布纹理;色差/柔边也还没加。
 - 生物/手部/天气等 pass 未实现(走原版 fallback,不参与辉光提取)。
 - 所有已实现效果的参数都已接入光影设置界面,可在游戏内实时调节。
+
+## 工具
+
+`tools/make_canvas_texture_stdlib.py` 用纯 Python 标准库程序化生成
+画布纹理(编织纹 + 纸浆斑块 + 细颗粒,无缝平铺),输出到
+`shaders/textures/canvas.png`。想换一张纹理直接改随机种子重新生成即可。
 
 详细开发任务拆解见同目录下的 `CURSOR_PROMPT.md`。
