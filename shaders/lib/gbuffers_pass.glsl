@@ -19,32 +19,32 @@ vec3 shadeUnlitTextured(vec3 albedo, vec3 sunDir, float rainStrength) {
     return lit;
 }
 
-void writeLitGbuffer(vec3 albedo, float alpha, vec3 normal, vec3 worldNormal,
+void writeLitGbuffer(vec3 albedo, float alpha, vec3 viewNormal, vec3 worldNormal,
                      vec2 lmcoord, vec3 feetPlayerPos, float materialId,
                      vec3 sunDir, float rainStrength, float paletteStrength,
                      float painterlyStrength, float shadowStrength,
                      float shadowSoftness) {
     vec3 vanillaLight = texture2D(lightmap, lmcoord).rgb;
     vec3 baseAlbedo   = applyMaterialPalette(albedo, materialId, paletteStrength);
-    vec3 litColor     = shadePainterly(baseAlbedo, normal, worldNormal, sunDir,
+    vec3 litColor     = shadePainterly(baseAlbedo, viewNormal, worldNormal, sunDir,
                                        lmcoord, vanillaLight, materialId,
                                        rainStrength, painterlyStrength,
                                        feetPlayerPos, shadowStrength,
                                        shadowSoftness);
 
     gl_FragData[0] = vec4(litColor, alpha);
-    gl_FragData[1] = packGBuffer(normal, materialId);
+    gl_FragData[1] = packGBuffer(viewNormal, materialId);
 }
 
-void writeUnlitGbuffer(vec3 albedo, float alpha, vec3 normal, float materialId,
+void writeUnlitGbuffer(vec3 albedo, float alpha, vec3 viewNormal, float materialId,
                        vec3 sunDir, float rainStrength) {
     vec3 litColor = shadeUnlitTextured(albedo, sunDir, rainStrength);
     gl_FragData[0] = vec4(litColor, alpha);
-    gl_FragData[1] = packGBuffer(normal, materialId);
+    gl_FragData[1] = packGBuffer(viewNormal, materialId);
 }
 
 // Rain/snow quads: lightmap as visibility info, not final color multiplier.
-void writeWeatherGbuffer(vec3 albedo, float alpha, vec2 lmcoord, vec3 normal,
+void writeWeatherGbuffer(vec3 albedo, float alpha, vec2 lmcoord, vec3 viewNormal,
                          vec3 worldNormal, vec3 sunDir, float rainStrength) {
     float skyVis, blockVis;
     lightmapVisibility(lmcoord, skyVis, blockVis);
@@ -63,20 +63,20 @@ void writeWeatherGbuffer(vec3 albedo, float alpha, vec2 lmcoord, vec3 normal,
     lit = mix(lit, vec3(dot(lit, vec3(0.333))) * 0.55, rainStrength * 0.65);
 
     gl_FragData[0] = vec4(lit, alpha);
-    gl_FragData[1] = packGBuffer(normal, MAT_DEFAULT);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_DEFAULT);
 }
 
-void writeEntityGbuffer(vec3 albedo, float alpha, vec3 normal, vec3 worldNormal,
+void writeEntityGbuffer(vec3 albedo, float alpha, vec3 viewNormal, vec3 worldNormal,
                         vec2 lmcoord, vec3 feetPlayerPos, vec3 sunDir,
                         float rainStrength, float paletteStrength,
                         float painterlyStrength, float shadowStrength,
                         float shadowSoftness) {
-    writeLitGbuffer(albedo, alpha, normal, worldNormal, lmcoord, feetPlayerPos,
+    writeLitGbuffer(albedo, alpha, viewNormal, worldNormal, lmcoord, feetPlayerPos,
                     MAT_ENTITY, sunDir, rainStrength, paletteStrength,
                     painterlyStrength, shadowStrength, shadowSoftness);
 }
 
-void writeSpiderEyesGbuffer(vec3 albedo, float alpha, vec3 normal,
+void writeSpiderEyesGbuffer(vec3 albedo, float alpha, vec3 viewNormal,
                             vec3 sunDir) {
     float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
     float day   = smoothstep(-0.10, 0.25, sunUp);
@@ -84,17 +84,17 @@ void writeSpiderEyesGbuffer(vec3 albedo, float alpha, vec3 normal,
     glow *= 1.35;
 
     gl_FragData[0] = vec4(glow, alpha);
-    gl_FragData[1] = packGBuffer(normal, MAT_ENTITY);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_ENTITY);
 }
 
-void writeArmorGlintGbuffer(vec3 albedo, float alpha, vec3 normal,
+void writeArmorGlintGbuffer(vec3 albedo, float alpha, vec3 viewNormal,
                             vec3 worldNormal, vec2 lmcoord, vec3 feetPlayerPos,
                             vec3 sunDir, float rainStrength,
                             float painterlyStrength, float shadowStrength,
                             float shadowSoftness) {
     vec3 vanillaLight = texture2D(lightmap, lmcoord).rgb;
     vec3 baseAlbedo   = applyMaterialPalette(albedo, MAT_ENTITY, 0.35);
-    vec3 litColor     = shadePainterly(baseAlbedo, normal, worldNormal, sunDir,
+    vec3 litColor     = shadePainterly(baseAlbedo, viewNormal, worldNormal, sunDir,
                                        lmcoord, vanillaLight, MAT_ENTITY,
                                        rainStrength, painterlyStrength,
                                        feetPlayerPos, shadowStrength,
@@ -103,15 +103,15 @@ void writeArmorGlintGbuffer(vec3 albedo, float alpha, vec3 normal,
     litColor = mix(litColor, glint, 0.55);
 
     gl_FragData[0] = vec4(litColor, alpha);
-    gl_FragData[1] = packGBuffer(normal, MAT_ENTITY);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_ENTITY);
 }
 
-void writeLightningGbuffer(vec3 albedo, float alpha, vec3 normal, vec3 sunDir) {
+void writeLightningGbuffer(vec3 albedo, float alpha, vec3 viewNormal, vec3 sunDir) {
     float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
     float day   = smoothstep(-0.10, 0.25, sunUp);
     vec3 bolt   = albedo * mix(vec3(0.85, 0.92, 1.15), vec3(1.20, 1.10, 0.85), day);
     bolt *= 1.8;
 
     gl_FragData[0] = vec4(bolt, alpha);
-    gl_FragData[1] = packGBuffer(normal, MAT_ENTITY);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_ENTITY);
 }

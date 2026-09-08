@@ -70,13 +70,13 @@ float softShadowVisibility(vec3 feetPlayerPos, float bias, float radius) {
 }
 
 // Sun occlusion factor in [0,1]: 1 = fully lit, 0 = fully occluded.
-float ghMapSunLit(vec3 feetPlayerPos, vec3 normal, vec3 lightDir,
+float ghMapSunLit(vec3 feetPlayerPos, vec3 viewNormal, vec3 lightDir,
                   float skyVis, float strength, float softness) {
     if (skyVis < 0.01 || strength < 0.001) {
         return 1.0;
     }
 
-    float NdotL = max(dot(normalize(normal), normalize(lightDir)), 0.0);
+    float NdotL = max(dot(normalize(viewNormal), normalize(lightDir)), 0.0);
     float bias  = 0.0006 + (1.0 - NdotL) * 0.0018;
 
     float lit = softShadowVisibility(feetPlayerPos, bias, softness);

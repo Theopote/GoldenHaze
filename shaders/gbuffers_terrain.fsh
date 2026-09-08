@@ -25,7 +25,7 @@ varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 worldPos;
 varying vec3 feetPlayerPos;
-varying vec3 normal;
+varying vec3 viewNormal;
 varying vec3 worldNormal;
 varying float blockId;
 
@@ -39,7 +39,7 @@ void main() {
     vec3 baseAlbedo = applyMaterialPalette(albedo.rgb, materialId, PALETTE_STRENGTH);
 
     vec3 vanillaLight = texture2D(lightmap, lmcoord).rgb;
-    vec3 litColor = shadePainterly(baseAlbedo, normal, worldNormal, sunPosition,
+    vec3 litColor = shadePainterly(baseAlbedo, viewNormal, worldNormal, sunPosition,
                                    lmcoord, vanillaLight, materialId, rainStrength,
                                    PAINTERLY_STRENGTH, feetPlayerPos,
                                    SHADOW_STRENGTH, SHADOW_SOFTNESS);
@@ -49,12 +49,12 @@ void main() {
         float blockVis;
         lightmapVisibility(lmcoord, skyVis, blockVis);
 
-        litColor = applyFoliageShading(baseAlbedo, litColor, worldPos, normal,
+        litColor = applyFoliageShading(baseAlbedo, litColor, worldPos, viewNormal,
                                        worldNormal, sunPosition, lmcoord, skyVis,
                                        frameTimeCounter, FOLIAGE_STRENGTH,
                                        SHIMMER_STRENGTH);
     }
 
     gl_FragData[0] = vec4(litColor, albedo.a);
-    gl_FragData[1] = packGBuffer(normal, materialId);
+    gl_FragData[1] = packGBuffer(viewNormal, materialId);
 }

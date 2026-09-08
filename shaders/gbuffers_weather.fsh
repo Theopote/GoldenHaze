@@ -13,7 +13,7 @@ uniform float rainStrength;
 varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
-varying vec3 normal;
+varying vec3 viewNormal;
 varying vec3 worldNormal;
 varying vec3 feetPlayerPos;
 
@@ -23,6 +23,6 @@ void main() {
     vec4 albedo = texture2D(texture, texcoord) * vertexColor;
     if (albedo.a < 0.02) discard;
 
-    writeWeatherGbuffer(albedo.rgb, albedo.a * vertexColor.a, lmcoord, normal,
+    writeWeatherGbuffer(albedo.rgb, albedo.a * vertexColor.a, lmcoord, viewNormal,
                         worldNormal, sunPosition, rainStrength);
 }

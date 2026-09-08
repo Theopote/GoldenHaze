@@ -14,7 +14,7 @@ uniform float rainStrength;
 
 varying vec2 texcoord;
 varying vec4 vertexColor;
-varying vec3 normal;
+varying vec3 viewNormal;
 
 /* DRAWBUFFERS:01 */
 
@@ -34,5 +34,5 @@ void main() {
     color *= feed * (1.0 - rainStrength);
 
     gl_FragData[0] = vec4(color, albedo.a);
-    gl_FragData[1] = packGBuffer(normal, MAT_SKY);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_SKY);
 }

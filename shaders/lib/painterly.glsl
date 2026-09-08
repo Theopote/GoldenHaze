@@ -18,8 +18,8 @@
 #include "/lib/palette.glsl"
 
 #define SUN_STRENGTH   1.0 // [0.00 0.50 0.75 1.00 1.25 1.50]
-#define SKY_STRENGTH   0.85 // [0.00 0.40 0.65 0.85 1.00 1.25]
-#define BOUNCE_STRENGTH 0.35 // [0.00 0.15 0.25 0.35 0.50 0.75]
+#define SKY_STRENGTH   0.60 // [0.00 0.40 0.55 0.60 0.70 0.85 1.00]
+#define BOUNCE_STRENGTH 0.20 // [0.00 0.10 0.15 0.20 0.25 0.35 0.50]
 
 float painterlyStep(float edge0, float edge1, float x) {
     return smoothstep(edge0, edge1, x);
@@ -81,9 +81,9 @@ vec3 painterlyBounceFill(vec3 worldNormal, float materialId, vec3 lightDir,
     return bounce * groundFacing * skyVis;
 }
 
-vec3 painterlyDirectionalLight(vec3 normal, vec3 lightDir, float materialId,
+vec3 painterlyDirectionalLight(vec3 viewNormal, vec3 lightDir, float materialId,
                                float skyVis, float sunLit) {
-    float NdotL = dot(normalize(normal), normalize(lightDir));
+    float NdotL = dot(normalize(viewNormal), normalize(lightDir));
 
     vec3 toneLo, toneMd, toneHi;
     painterlyBandColors(materialId, toneLo, toneMd, toneHi);
@@ -111,17 +111,17 @@ vec3 painterlyAmbientFill(float skyVis, float blockVis, vec3 vanillaLight) {
     return caveFill + torchFill + vanillaHint;
 }
 
-vec3 shadePainterly(vec3 albedo, vec3 normal, vec3 worldNormal, vec3 lightDir,
+vec3 shadePainterly(vec3 albedo, vec3 viewNormal, vec3 worldNormal, vec3 lightDir,
                     vec2 lmcoord, vec3 vanillaLight, float materialId,
                     float rainStrength, float strength, vec3 feetPlayerPos,
                     float shadowStrength, float shadowSoftness) {
     float skyVis, blockVis;
     lightmapVisibility(lmcoord, skyVis, blockVis);
 
-    float sunLit = ghMapSunLit(feetPlayerPos, normal, lightDir, skyVis,
+    float sunLit = ghMapSunLit(feetPlayerPos, viewNormal, lightDir, skyVis,
                                shadowStrength, shadowSoftness);
 
-    vec3 sunLight  = painterlyDirectionalLight(normal, lightDir, materialId,
+    vec3 sunLight  = painterlyDirectionalLight(viewNormal, lightDir, materialId,
                                                skyVis, sunLit) * SUN_STRENGTH;
     vec3 skyLight  = painterlySkyFill(worldNormal, skyVis) * SKY_STRENGTH;
     vec3 bounce    = painterlyBounceFill(worldNormal, materialId, lightDir, skyVis)

@@ -64,14 +64,14 @@ vec3 waterLayerBase(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
 }
 
 // Layer 2 — sky reflection via grazing view angle (stylized Fresnel).
-vec3 waterLayerSkyReflection(vec3 baseRgb, vec3 normal, vec3 viewDir,
+vec3 waterLayerSkyReflection(vec3 baseRgb, vec3 viewNormal, vec3 viewDir,
                              vec3 waterFar, float skyVis) {
-    float fresnel = pow(1.0 - max(dot(normalize(normal), normalize(viewDir)), 0.0), 2.8);
+    float fresnel = pow(1.0 - max(dot(normalize(viewNormal), normalize(viewDir)), 0.0), 2.8);
     return mix(baseRgb, waterFar * 1.08, fresnel * 0.55 * skyVis);
 }
 
 // Layer 3 — horizontal sun ribbon bands (world up for horizontal water).
-float waterSunRibbonMask(vec3 worldPos, vec3 normal, vec3 worldNormal,
+float waterSunRibbonMask(vec3 worldPos, vec3 viewNormal, vec3 worldNormal,
                          vec3 viewDir, vec3 sunDir, float skyVis,
                          float frameTime) {
     float upFacing = smoothstep(0.45, 0.88, worldNormal.y);
@@ -85,8 +85,8 @@ float waterSunRibbonMask(vec3 worldPos, vec3 normal, vec3 worldNormal,
     float dash = waterVnoise(vec2(wp.x * 0.11, wp.z * 0.04) + frameTime * 0.06);
     band *= smoothstep(0.40, 0.72, dash);
 
-    float sunFace = max(dot(normalize(normal), normalize(sunDir)), 0.0);
-    float viewGrazing = pow(1.0 - max(dot(normalize(normal), normalize(viewDir)), 0.0), 1.5);
+    float sunFace = max(dot(normalize(viewNormal), normalize(sunDir)), 0.0);
+    float viewGrazing = pow(1.0 - max(dot(normalize(viewNormal), normalize(viewDir)), 0.0), 1.5);
 
     return band * sunFace * viewGrazing * skyVis * upFacing;
 }
@@ -99,7 +99,7 @@ float waterMicroSparkle(vec3 worldPos, float frameTime, float ribbonMask) {
 }
 
 vec3 waterPaletteAlbedo(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
-                        vec3 normal, vec3 viewDir, vec3 sunDir,
+                        vec3 viewNormal, vec3 viewDir, vec3 sunDir,
                         float skyVis, float rainStrength,
                         float distNear, float distFar, float strength) {
     vec3 base = waterLayerBase(albedo, worldPos, feetPlayerPos, sunDir, skyVis,
@@ -107,17 +107,17 @@ vec3 waterPaletteAlbedo(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
 
     vec3 waterNear, waterMid, waterFar, waterSunset;
     waterSkyPalette(sunDir, rainStrength, waterNear, waterMid, waterFar, waterSunset);
-    vec3 layered = waterLayerSkyReflection(base, normal, viewDir, waterFar, skyVis);
+    vec3 layered = waterLayerSkyReflection(base, viewNormal, viewDir, waterFar, skyVis);
 
     return mix(albedo, layered, strength);
 }
 
-vec3 waterStylizedHighlights(vec3 lit, vec3 worldPos, vec3 normal,
+vec3 waterStylizedHighlights(vec3 lit, vec3 worldPos, vec3 viewNormal,
                              vec3 worldNormal, vec3 viewDir, vec3 sunDir,
                              float skyVis, float frameTime, float strength) {
     if (strength < 0.001) return lit;
 
-    float ribbon = waterSunRibbonMask(worldPos, normal, worldNormal, viewDir,
+    float ribbon = waterSunRibbonMask(worldPos, viewNormal, worldNormal, viewDir,
                                       sunDir, skyVis, frameTime);
     float sparkle = waterMicroSparkle(worldPos, frameTime, ribbon);
 
@@ -126,7 +126,7 @@ vec3 waterStylizedHighlights(vec3 lit, vec3 worldPos, vec3 normal,
 }
 
 vec3 applyWaterShading(vec3 albedo, vec3 painterlyLit, vec3 worldPos,
-                       vec3 feetPlayerPos, vec3 normal, vec3 worldNormal,
+                       vec3 feetPlayerPos, vec3 viewNormal, vec3 worldNormal,
                        vec3 viewDir, vec3 sunDir, vec2 lmcoord,
                        float rainStrength, float frameTime, float waterStrength,
                        float highlightStrength, float distNear, float distFar) {
@@ -135,14 +135,14 @@ vec3 applyWaterShading(vec3 albedo, vec3 painterlyLit, vec3 worldPos,
     blockVis = smoothstep(0.02, 0.20, lmcoord.x);
 
     vec3 paletteAlbedo = waterPaletteAlbedo(albedo, worldPos, feetPlayerPos,
-                                            normal, viewDir, sunDir, skyVis,
+                                            viewNormal, viewDir, sunDir, skyVis,
                                             rainStrength, distNear, distFar,
                                             waterStrength);
 
     vec3 tintRatio = paletteAlbedo / max(albedo, vec3(0.001));
     vec3 lit = painterlyLit * tintRatio;
 
-    lit = waterStylizedHighlights(lit, worldPos, normal, worldNormal, viewDir,
+    lit = waterStylizedHighlights(lit, worldPos, viewNormal, worldNormal, viewDir,
                                   sunDir, skyVis, frameTime, highlightStrength);
 
     return mix(painterlyLit, lit, waterStrength);

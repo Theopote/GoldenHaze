@@ -10,7 +10,7 @@ uniform vec3 sunPosition;
 
 varying vec2 texcoord;
 varying vec4 vertexColor;
-varying vec3 normal;
+varying vec3 viewNormal;
 
 /* DRAWBUFFERS:01 */
 
@@ -18,5 +18,5 @@ void main() {
     vec4 albedo = texture2D(texture, texcoord) * vertexColor;
     if (albedo.a < 0.05) discard;
 
-    writeSpiderEyesGbuffer(albedo.rgb, albedo.a, normal, sunPosition);
+    writeSpiderEyesGbuffer(albedo.rgb, albedo.a, viewNormal, sunPosition);
 }

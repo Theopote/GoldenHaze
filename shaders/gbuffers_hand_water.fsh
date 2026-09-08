@@ -21,7 +21,7 @@ uniform float rainStrength;
 varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
-varying vec3 normal;
+varying vec3 viewNormal;
 varying vec3 worldNormal;
 varying vec3 feetPlayerPos;
 varying vec3 worldPos;
@@ -35,18 +35,18 @@ void main() {
 
     vec3 vanillaLight = texture2D(lightmap, lmcoord).rgb;
     vec3 baseAlbedo   = applyMaterialPalette(albedo.rgb, MAT_WATER, WATER_STRENGTH);
-    vec3 litColor     = shadePainterly(baseAlbedo, normal, worldNormal, sunPosition,
+    vec3 litColor     = shadePainterly(baseAlbedo, viewNormal, worldNormal, sunPosition,
                                        lmcoord, vanillaLight, MAT_WATER, rainStrength,
                                        PAINTERLY_STRENGTH, feetPlayerPos,
                                        SHADOW_STRENGTH, SHADOW_SOFTNESS);
 
     float skyVis = smoothstep(0.02, 0.28, lmcoord.y);
     litColor = applyWaterShading(albedo.rgb, litColor, worldPos, feetPlayerPos,
-                                   normal, worldNormal, viewDir, sunPosition,
+                                   viewNormal, worldNormal, viewDir, sunPosition,
                                    lmcoord, rainStrength, 0.0,
                                    WATER_STRENGTH, WATER_STRENGTH * 0.5,
                                    WATER_DIST_NEAR, WATER_DIST_FAR);
 
     gl_FragData[0] = vec4(litColor, albedo.a);
-    gl_FragData[1] = packGBuffer(normal, MAT_WATER);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_WATER);
 }

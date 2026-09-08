@@ -50,8 +50,8 @@ vec3 foliageVerticalPalette(vec3 albedo, vec3 worldPos, vec3 worldNormal,
 }
 
 // Sun-facing warm yellow-green vs back-facing blue-green.
-vec3 foliageFacingTint(vec3 albedo, vec3 normal, vec3 sunDir, float skyVis) {
-    float NdotL   = dot(normalize(normal), normalize(sunDir));
+vec3 foliageFacingTint(vec3 albedo, vec3 viewNormal, vec3 sunDir, float skyVis) {
+    float NdotL   = dot(normalize(viewNormal), normalize(sunDir));
     float sunFace = smoothstep(-0.12, 0.48, NdotL) * skyVis;
     float backFace = smoothstep(-0.12, 0.48, -NdotL) * skyVis;
 
@@ -79,8 +79,8 @@ vec3 foliageCanopyShade(vec3 lit, vec3 worldPos, vec2 lmcoord, float skyVis) {
     return lit;
 }
 
-vec3 foliageRimTranslucency(vec3 lit, vec3 normal, vec3 sunDir, float skyVis) {
-    float NdotL = dot(normalize(normal), normalize(sunDir));
+vec3 foliageRimTranslucency(vec3 lit, vec3 viewNormal, vec3 sunDir, float skyVis) {
+    float NdotL = dot(normalize(viewNormal), normalize(sunDir));
     float rim   = smoothstep(0.12, 0.52, -NdotL) * skyVis;
     return lit + vec3(0.38, 0.48, 0.16) * rim * 0.55;
 }
@@ -108,7 +108,7 @@ vec3 foliageSunFlecks(vec3 lit, vec3 worldPos, float skyVis,
  * `baseAlbedo`    = texture albedo before lighting (for tint ratio).
  */
 vec3 applyFoliageShading(vec3 baseAlbedo, vec3 painterlyLit, vec3 worldPos,
-                         vec3 normal, vec3 worldNormal, vec3 sunDir,
+                         vec3 viewNormal, vec3 worldNormal, vec3 sunDir,
                          vec2 lmcoord, float skyVis, float frameTime,
                          float foliageStrength, float shimmerStrength) {
     if (foliageStrength < 0.001) {
@@ -116,13 +116,13 @@ vec3 applyFoliageShading(vec3 baseAlbedo, vec3 painterlyLit, vec3 worldPos,
     }
 
     vec3 tinted = foliageVerticalPalette(baseAlbedo, worldPos, worldNormal, skyVis);
-    tinted = foliageFacingTint(tinted, normal, sunDir, skyVis);
+    tinted = foliageFacingTint(tinted, viewNormal, sunDir, skyVis);
 
     vec3 tintRatio = tinted / max(baseAlbedo, vec3(0.001));
     vec3 lit = painterlyLit * tintRatio;
 
     lit = foliageCanopyShade(lit, worldPos, lmcoord, skyVis);
-    lit = foliageRimTranslucency(lit, normal, sunDir, skyVis);
+    lit = foliageRimTranslucency(lit, viewNormal, sunDir, skyVis);
     lit = foliageSunFlecks(lit, worldPos, skyVis, frameTime, shimmerStrength);
 
     return mix(painterlyLit, lit, foliageStrength);

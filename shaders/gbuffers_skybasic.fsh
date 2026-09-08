@@ -17,7 +17,7 @@ uniform float rainStrength;
 uniform float frameTimeCounter;
 
 varying vec3 viewDir;
-varying vec3 normal;
+varying vec3 viewNormal;
 
 /* DRAWBUFFERS:01 */
 
@@ -51,5 +51,5 @@ void main() {
 #endif
 
     gl_FragData[0] = vec4(sky, 1.0);
-    gl_FragData[1] = packGBuffer(normal, MAT_SKY);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_SKY);
 }
