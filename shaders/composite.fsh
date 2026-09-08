@@ -1,34 +1,25 @@
 /*
- * composite — bloom blur pass 1 of 2 (horizontal)
- * Reads the bright-pass buffer written in gbuffers_terrain and blurs
- * it horizontally with a 9-tap separable Gaussian. composite1.fsh
- * does the vertical half of the same blur.
+ * composite — bloom bright-pass extract
+ *
+ * Reads the lit scene (colortex0) and writes thresholded highlights
+ * to colortex2. composite1/composite2 blur colortex2; composite3
+ * god-rays sample the blurred result. colortex1 (GBuffer) is untouched.
  */
 #version 120
 
-uniform sampler2D colortex1;
-uniform float viewWidth;
+#define BLOOM_THRESHOLD 0.55 // [0.30 0.40 0.50 0.55 0.65 0.75 0.85]
+
+uniform sampler2D colortex0;
 
 varying vec2 texcoord;
 
-/* DRAWBUFFERS:1 */
+/* DRAWBUFFERS:2 */
 
 void main() {
-    float texel = 1.0 / viewWidth;
+    vec3 scene = texture2D(colortex0, texcoord).rgb;
 
-    float w[5];
-    w[0] = 0.2270270270;
-    w[1] = 0.1945945946;
-    w[2] = 0.1216216216;
-    w[3] = 0.0540540541;
-    w[4] = 0.0162162162;
+    float brightness = dot(scene, vec3(0.299, 0.587, 0.114));
+    float threshold  = smoothstep(BLOOM_THRESHOLD, BLOOM_THRESHOLD + 0.35, brightness);
 
-    vec3 result = texture2D(colortex1, texcoord).rgb * w[0];
-    for (int i = 1; i < 5; i++) {
-        float offset = texel * float(i) * 2.0;
-        result += texture2D(colortex1, texcoord + vec2(offset, 0.0)).rgb * w[i];
-        result += texture2D(colortex1, texcoord - vec2(offset, 0.0)).rgb * w[i];
-    }
-
-    gl_FragData[0] = vec4(result, 1.0);
+    gl_FragData[0] = vec4(scene * threshold, 1.0);
 }

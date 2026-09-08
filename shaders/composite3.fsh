@@ -1,0 +1,79 @@
+/*
+ * composite3 — god rays (crepuscular light shafts)
+ *
+ * Runs after bloom blur (colortex2). Marches toward the sun's screen
+ * position, accumulating the blurred bright-pass buffer. Result goes
+ * to colortex3 so colortex1 (GBuffer) stays untouched for Phase 2.2.
+ */
+#version 120
+
+#define ENABLE_GODRAYS // [on/off default: on]
+
+#define GODRAY_SAMPLES   64    // [32 48 64 80 100]
+#define GODRAY_DENSITY    0.85 // [0.50 0.65 0.85 1.00 1.20]
+#define GODRAY_DECAY      0.94 // [0.88 0.91 0.94 0.96 0.98]
+#define GODRAY_EXPOSURE   0.50 // [0.25 0.35 0.50 0.70 1.00]
+
+#define GODRAY_SAMPLES_F  float(GODRAY_SAMPLES)
+
+uniform sampler2D colortex2;
+uniform vec3 sunPosition;
+uniform mat4 gbufferProjection;
+uniform float aspectRatio;
+uniform float rainStrength;
+
+varying vec2 texcoord;
+
+/* DRAWBUFFERS:3 */
+
+void main() {
+    vec3 shafts = vec3(0.0);
+
+#ifdef ENABLE_GODRAYS
+    float sunUp = normalize(sunPosition).y;
+
+    if (sunUp > -0.08) {
+        vec3 sunDir = normalize(sunPosition);
+        float inFront = smoothstep(-0.05, 0.15, -sunDir.z);
+
+        vec4 clip = gbufferProjection * vec4(sunPosition, 1.0);
+        vec2 sunScreen = clip.xy / clip.w * 0.5 + 0.5;
+
+        vec2 dAspect = (texcoord - sunScreen) * vec2(aspectRatio, 1.0);
+        float distFromSun = length(dAspect);
+
+        float vis = 1.0 - smoothstep(0.55, 1.55, distFromSun);
+        vis *= inFront;
+
+        if (vis > 0.001) {
+            vec2 dir = (sunScreen - texcoord) * (GODRAY_DENSITY / GODRAY_SAMPLES_F);
+
+            vec2 sampleUV = texcoord;
+            float illum = 1.0;
+
+            for (int i = 0; i < GODRAY_SAMPLES; i++) {
+                sampleUV += dir;
+
+                vec2 inBounds = step(vec2(0.0), sampleUV) * step(sampleUV, vec2(1.0));
+                float boundsMask = inBounds.x * inBounds.y;
+
+                vec3 s = texture2D(colortex2, sampleUV).rgb;
+                shafts += s * illum * boundsMask;
+                illum  *= GODRAY_DECAY;
+            }
+
+            shafts *= GODRAY_EXPOSURE / GODRAY_SAMPLES_F;
+
+            float lowSun = 1.0 - smoothstep(0.0, 0.55, sunUp);
+            vec3 tint = mix(vec3(1.00, 0.80, 0.50), vec3(1.00, 0.60, 0.30), lowSun);
+            shafts *= tint;
+
+            shafts *= smoothstep(-0.08, 0.06, sunUp);
+            shafts *= 1.0 - rainStrength;
+            shafts *= vis;
+        }
+    }
+#endif
+
+    gl_FragData[0] = vec4(shafts, 1.0);
+}

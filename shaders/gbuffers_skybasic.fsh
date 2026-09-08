@@ -11,14 +11,16 @@
  *      sun-lit rims ("gold lining"), and cloud bottoms pick up a warm
  *      bounce near the horizon. Clouds drift with frameTimeCounter.
  *
- * The horizon band and sun-lit cloud rims feed colortex1 so the bloom
- * picks them up. Clouds fade out near the horizon (haze) and at night
- * they become dark silhouettes.
+ * The horizon band and sun-lit cloud rims are picked up by the
+ * composite-stage bright-pass extract from colortex0. Clouds fade out
+ * near the horizon (haze) and at night they become dark silhouettes.
  *
  * vs gbuffers_basic: "basic" covers untextured world geometry
  * (leash, beacon beam...). The sky dome goes through skybasic.
  */
 #version 120
+
+#include "/lib/gbuffer.glsl"
 
 #define ENABLE_CLOUDS // toggle in the shader options GUI
 #define CLOUD_COVERAGE 0.45 // [0.25 0.35 0.45 0.55 0.65]
@@ -28,6 +30,7 @@ uniform float rainStrength;    // 0..1, dull the sky when it rains
 uniform float frameTimeCounter;// seconds, drives cloud drift
 
 varying vec3 viewDir;
+varying vec3 normal;
 
 /* DRAWBUFFERS:01 */
 
@@ -92,9 +95,6 @@ void main() {
     vec3 sky = mix(zenithCol, horizonCol, horizon);
     sky = mix(sky, vec3(dot(sky, vec3(0.333))) * 0.6, rainStrength * 0.7);
 
-    vec3 cloudGlowCol = vec3(0.0);
-    float cloudGlow   = 0.0;
-
 #ifdef ENABLE_CLOUDS
     // clouds only live above the horizon; fade them into the haze band
     float cloudFade = smoothstep(0.02, 0.12, up);
@@ -145,18 +145,10 @@ void main() {
                            rainStrength * 0.7);
 
             sky = mix(sky, cloudCol, cover * 0.95);
-
-            // sun-facing rims glow into the bloom buffer
-            cloudGlowCol = cloudLit;
-            cloudGlow    = cover * max(rim, 0.0) * max(day, sunset) * 0.8;
         }
     }
 #endif
 
     gl_FragData[0] = vec4(sky, 1.0);
-
-    // bloom feed: horizon band glows (sun halo), zenith barely, plus rims
-    float glow = horizon * mix(0.10, 0.55, max(day, sunset)) + 0.03 * day;
-    gl_FragData[1] = vec4(sky * glow * (1.0 - rainStrength * 0.8)
-                          + cloudGlowCol * cloudGlow, 1.0);
+    gl_FragData[1] = packGBuffer(normal, MAT_SKY);
 }

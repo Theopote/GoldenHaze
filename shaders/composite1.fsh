@@ -1,20 +1,18 @@
 /*
- * composite1 — bloom blur pass 2 of 2 (vertical)
- * Finishes the separable Gaussian blur started in composite.fsh.
- * The result sitting in colortex1 after this pass is the final
- * soft glow that final.fsh adds back onto the scene.
+ * composite1 — bloom blur pass 1 of 2 (horizontal)
+ * Blurs the bright-pass buffer in colortex2.
  */
 #version 120
 
-uniform sampler2D colortex1;
-uniform float viewHeight;
+uniform sampler2D colortex2;
+uniform float viewWidth;
 
 varying vec2 texcoord;
 
-/* DRAWBUFFERS:1 */
+/* DRAWBUFFERS:2 */
 
 void main() {
-    float texel = 1.0 / viewHeight;
+    float texel = 1.0 / viewWidth;
 
     float w[5];
     w[0] = 0.2270270270;
@@ -23,11 +21,11 @@ void main() {
     w[3] = 0.0540540541;
     w[4] = 0.0162162162;
 
-    vec3 result = texture2D(colortex1, texcoord).rgb * w[0];
+    vec3 result = texture2D(colortex2, texcoord).rgb * w[0];
     for (int i = 1; i < 5; i++) {
         float offset = texel * float(i) * 2.0;
-        result += texture2D(colortex1, texcoord + vec2(0.0, offset)).rgb * w[i];
-        result += texture2D(colortex1, texcoord - vec2(0.0, offset)).rgb * w[i];
+        result += texture2D(colortex2, texcoord + vec2(offset, 0.0)).rgb * w[i];
+        result += texture2D(colortex2, texcoord - vec2(offset, 0.0)).rgb * w[i];
     }
 
     gl_FragData[0] = vec4(result, 1.0);

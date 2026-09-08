@@ -20,6 +20,8 @@ varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 worldPos;
+varying vec3 feetPlayerPos;
+varying vec3 normal;
 varying float blockId; // renamed from entityId: that name collides
                        // with an Iris-internal declaration and breaks
                        // unrelated passes (text_be) at link time
@@ -31,6 +33,8 @@ void main() {
     vertexColor = gl_Color;
 
     vec3 viewPos = (gl_ModelViewMatrix * gl_Vertex).xyz;
-    worldPos     = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz + cameraPosition;
+    feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
+    worldPos      = feetPlayerPos + cameraPosition;
+    normal       = normalize(gl_NormalMatrix * gl_Normal);
     blockId      = mc_Entity;
 }

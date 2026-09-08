@@ -1,26 +1,34 @@
 /*
  * final — combine + warm color grade
  *
- * 1. Adds the blurred bloom (colortex1) back onto the scene (colortex0).
- * 2. Split-tones the image: shadows nudged cool/violet, highlights
- *    nudged warm/gold — the classic hand-painted-animation trick that
- *    makes flat lighting read as "warm sunlight" instead of just bright.
- * 3. Soft vignette + fixed screen-space paper grain (very subtle).
+ * 1. Applies painterly atmospheric perspective to the scene (depthtex0).
+ * 2. Adds blurred bloom (colortex2) and god rays (colortex3).
+ * 3. Split-tones, tonemap, vignette, fixed screen-space paper grain.
  */
 #version 120
 
-#define BLOOM_STRENGTH     0.8  // [0.00 0.20 0.40 0.60 0.80 1.00 1.30 1.60]
-#define GODRAY_STRENGTH    0.45 // [0.00 0.30 0.45 0.60 0.90 1.20 1.60 2.00]
-#define WARMTH             1.0  // [0.00 0.30 0.60 1.00 1.40 1.80]
-#define VIGNETTE_STRENGTH  0.6  // [0.00 0.20 0.40 0.60 0.80 1.00]
-#define GRAIN_STRENGTH     0.35 // [0.00 0.30 0.35 0.60 1.00 1.50]
-#define CHROMA_STRENGTH    0.0  // [0.00 0.30 0.60 1.00 1.50] optional cinematic
+#include "/lib/atmospheric.glsl"
+
+#define BLOOM_STRENGTH        0.8  // [0.00 0.20 0.40 0.60 0.80 1.00 1.30 1.60]
+#define GODRAY_STRENGTH       0.45 // [0.00 0.30 0.45 0.60 0.90 1.20 1.60 2.00]
+#define WARMTH                1.0  // [0.00 0.30 0.60 1.00 1.40 1.80]
+#define VIGNETTE_STRENGTH     0.6  // [0.00 0.20 0.40 0.60 0.80 1.00]
+#define GRAIN_STRENGTH        0.35 // [0.00 0.30 0.35 0.60 1.00 1.50]
+#define CHROMA_STRENGTH       0.0  // [0.00 0.30 0.60 1.00 1.50] optional cinematic
+#define ATMOSPHERE_STRENGTH   1.0  // [0.00 0.50 0.75 1.00 1.25 1.50]
+#define ATMOSPHERE_START     24.0  // [8 16 24 32 48 64 96]
+#define ATMOSPHERE_END      160.0  // [80 120 160 200 256 320 480]
 
 uniform sampler2D colortex0;
-uniform sampler2D colortex1;
-uniform sampler2D colortex2; // god-ray accumulation (composite2)
-uniform sampler2D canvas;    // custom paper grain, bound via
-                             // texture.canvas in shaders.properties
+uniform sampler2D colortex1; // GBuffer: normal + material (sky mask)
+uniform sampler2D colortex2; // blurred bloom
+uniform sampler2D colortex3; // god-ray accumulation
+uniform sampler2D depthtex0;
+uniform sampler2D canvas;
+uniform vec3 sunPosition;
+uniform float near;
+uniform float far;
+uniform float rainStrength;
 uniform float viewWidth;
 uniform float viewHeight;
 
@@ -33,28 +41,19 @@ vec3 warmGrade(vec3 color) {
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
     color += mix(shadowTint, highlightTint, smoothstep(0.2, 0.8, luma));
 
-    // gentle saturation/contrast lift around mid-gray
     color = mix(vec3(luma), color, 1.0 + 0.15 * WARMTH);
     return color;
 }
 
-// filmic-ish shoulder so bloom + shafts roll off softly instead of
-// clipping to dead white around the sun (tonemap before grading)
 vec3 tonemap(vec3 x) {
     return x / (x + vec3(0.6));
 }
 
-// lifted blacks: shadows never reach 0, they settle into a soft
-// dark-with-air look (hand-painted cels keep shadow detail readable).
-// Also gently compresses the very top so highlights stay creamy.
 vec3 softCurve(vec3 x) {
     return x * (0.92 + 0.08 * x) + vec3(0.028);
 }
 
 void main() {
-    // optional chromatic aberration (default off): radial RGB offset
-    // reads as lens dispersion, not hand-painted — keep at 0 unless
-    // you want a deliberate cinematic look
     vec2 fromCenter = texcoord - 0.5;
     vec2 caOffset = fromCenter * (CHROMA_STRENGTH * 0.0015)
                   * dot(fromCenter, fromCenter) * 4.0;
@@ -63,8 +62,29 @@ void main() {
     scene.g = texture2D(colortex0, texcoord).g;
     scene.b = texture2D(colortex0, texcoord - caOffset).b;
 
-    vec3 bloom  = texture2D(colortex1, texcoord).rgb;
-    vec3 shafts = texture2D(colortex2, texcoord).rgb;
+    // --- atmospheric perspective (Phase 2.1) ---
+    float depth = texture2D(depthtex0, texcoord).r;
+    float linearZ = linearizeDepth(depth, near, far);
+    float haze = computeHaze(linearZ, ATMOSPHERE_START, ATMOSPHERE_END);
+
+    float materialId = readMaterialId(texture2D(colortex1, texcoord));
+    if (isSkyMaterial(materialId)) {
+        haze = 0.0;
+    }
+
+    haze *= ATMOSPHERE_STRENGTH;
+
+    if (haze > 0.001) {
+        vec2 texelSize = vec2(1.0 / viewWidth, 1.0 / viewHeight);
+        vec3 softened = softenDistantDetail(colortex0, texcoord, texelSize, haze);
+        scene = mix(scene, softened, haze * 0.55);
+
+        vec3 horizonColor = atmosphericHorizonColor(sunPosition, rainStrength);
+        scene = applyAtmosphericPerspective(scene, haze, horizonColor);
+    }
+
+    vec3 bloom  = texture2D(colortex2, texcoord).rgb;
+    vec3 shafts = texture2D(colortex3, texcoord).rgb;
 
     vec3 color = scene + bloom * BLOOM_STRENGTH + shafts * GODRAY_STRENGTH;
     color = tonemap(color);
@@ -75,14 +95,10 @@ void main() {
     float vignette = 1.0 - dot(uv, uv) * VIGNETTE_STRENGTH;
     color *= vignette;
 
-    // paper grain: fixed screen-space canvas texture, two octaves.
-    // Does not scroll — drifting grain reads as film noise, not paper.
     vec2 res = vec2(viewWidth, viewHeight);
     float g1 = texture2D(canvas, texcoord * res / 256.0).r;
     float g2 = texture2D(canvas, texcoord * res / 512.0).r;
     float grain = (g1 * 0.65 + g2 * 0.35) - 0.5;
-    // stronger in midtones/shadows, barely visible in highlights —
-    // like pigment sitting in the tooth of the paper
     float luma2 = dot(color, vec3(0.299, 0.587, 0.114));
     color += grain * 0.05 * GRAIN_STRENGTH * (1.0 - luma2 * 0.6);
 

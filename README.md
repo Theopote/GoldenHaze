@@ -32,14 +32,14 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 | 色彩 | 6.5/10 | split-toning 有效，但目前仅依据最终像素亮度 |
 | Bloom | 7/10 | 实现成熟，但权重偏高，易走向梦幻滤镜 |
 | 光束 | 6/10 | 径向散射可用，应降级为辅助效果 |
-| 水 | 4/10 | lightmap + 噪声闪光，缺少色块化与距离调色 |
-| 植被 | 4.5/10 | 世界空间闪光方向对，但未融入 foliage shading |
-| 地形 | 3/10 | `albedo * lightmap`，无自有光照模型 |
-| 形体塑造 | 2/10 | 块面明暗关系仍由原版决定 |
-| 空气透视 | 1/10 | 未实现 depth-based atmospheric perspective |
-| 阴影系统 | 1/10 | 无 shadow map，依赖 vanilla lightmap |
+| 水 | 5/10 | 青绿分块光照 + 闪光，待 palette 水体 2.0 |
+| 植被 | 5.5/10 | 树叶独立色板 + 逆光 rim，闪光已融入 |
+| 地形 | 5.5/10 | Painterly 宽色阶光照，仍依赖 lightmap 做洞穴/火把可见性 |
+| 形体塑造 | 5.5/10 | 法线分块 + 太阳投影构图，大块柔和阴影 |
+| 空气透视 | 5/10 | depthtex0 驱动：蓝移、去饱和、远景柔化（final.fsh） |
+| 阴影系统 | 5/10 | 2048 软阴影 + 冷色投影 tint，待 entities pass |
 | 材质统一性 | 3/10 | 各 pass 风格断裂（世界 vs 生物/手/天气） |
-| 完整渲染管线 | 3/10 | GBuffer 架构停留在早期 bloom 方案 |
+| 完整渲染管线 | 4/10 | GBuffer 2.0 已落地（normal + material），待接光照与 depth |
 
 ---
 
@@ -48,27 +48,30 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 以下模块方向正确，**保留并在此基础上演进**，不推倒重来：
 
 - **暖光冷影 split-toning**（`final.fsh`）— 阴影偏冷紫、高光偏暖金
-- **柔和 Bloom** — 可分离高斯模糊，bright-pass 提取
-- **丁达尔光束** — `composite2` 径向采样，树叶遮挡处自然断续
-- **程序化天空** — `gbuffers_skybasic`：Zenith/Horizon 色带、FBM 云、云内冷暖分组、向阳云边
-- **植被闪光** — leaves block ID + 世界空间噪声亮斑（`gbuffers_terrain`）
-- **水面闪光** — 世界空间噪声横向涟漪（`gbuffers_water`）
-- **纸张颗粒** — `final.fsh` 采样 `textures/canvas.png`
-- **非写实 tonemap** — filmic shoulder + lifted blacks
+- **柔和 Bloom** — composite 阶段 bright-pass extract + 可分离高斯模糊
+- **丁达尔光束** — `composite3` 径向采样
+- **程序化天空** — `gbuffers_skybasic`：昼夜渐变、FBM 云、云亮/暗面分组
+- **植被 / 水面闪光** — 世界空间噪声亮斑
+- **纸张颗粒 + 非写实 tonemap**
 
-当前管线：
+当前管线（GBuffer 2.0）：
 
 ```
-Vanilla lightmap
-  → terrain/water: albedo * lightmap + sparkle accent
-  → bright-pass → colortex1
-  → composite / composite1: Gaussian blur (bloom)
-  → composite2: god rays
-  → final: tonemap + split-tone + vignette + grain
+GBUFFER
+  colortex0  lit scene color
+  colortex1  view-normal (RGB) + material ID (A)
+
+COMPOSITE
+  composite   bright-pass extract (colortex0 → colortex2)
+  composite1  bloom blur horizontal
+  composite2  bloom blur vertical
+  composite3  god rays (sample colortex2 → colortex3)
+
+FINAL
+  tonemap + split-tone + vignette + grain
 ```
 
-**局限：** 场景主体的明暗关系仍是 Minecraft 原版。即使后期调得很好，也容易得到
-「Minecraft + warm cinematic shader」，而非「Minecraft 被重新解释成动画背景画」。
+**局限：** Painterly 光照已在 gbuffers 生效，但尚无 shadow map；生物/手部等待 pass 补全。
 
 ---
 
@@ -76,48 +79,62 @@ Vanilla lightmap
 
 按依赖顺序推进，不零散加效果：
 
-### 2.0 — GBuffer 重构（前置条件）
+### 2.0 — GBuffer 重构 ✅（已完成）
 
 ```
 GBUFFER
-  colortex0  Scene Color / Albedo
-  colortex1  Normal + Material ID
-  colortex2  Auxiliary
-  depthtex0  Depth
+  colortex0  Scene Color
+  colortex1  Normal + Material ID   ← lib/gbuffer.glsl
+  colortex2  Bloom working buffer
+  colortex3  God-ray accumulation
 
 COMPOSITE
-  Painterly Lighting → Atmosphere → Fog
-  Bloom Extract → Bloom Blur → God Ray
+  composite   Bloom extract
+  composite1  Bloom blur (H)
+  composite2  Bloom blur (V)
+  composite3  God rays
 
 FINAL
   Color Grade → Paper Texture → Vignette
 ```
 
-- Bright-pass **移出** `gbuffers_terrain`，改在 composite 阶段 extract
-- `colortex1` 不再被 bloom 长期占用
+- Bright-pass 已移出 gbuffers，改在 `composite.fsh` extract
+- `colortex1` 专用于 GBuffer，不再被 bloom 占用
+- 材质 ID：`MAT_DEFAULT` / `MAT_FOLIAGE` / `MAT_WATER` / `MAT_SKY`
+- 待办：接入 `depthtex0`、在 composite 读取 GBuffer 做光照
 
-### 2.1 — 空气透视（P0，投入小收益大）
+### 2.1 — 空气透视 ✅（已完成）
 
-基于 depth 的距离雾，同时：
+在 `final.fsh` 读取 `depthtex0` + `colortex1`（跳过天空材质）：
 
-- 降低对比度与饱和度
-- 蓝/青偏移
-- 减弱远景纹理细节
+- 基于线性视空间深度的 haze（`ATMOSPHERE_START` / `ATMOSPHERE_END`）
+- 向地平线色调混合（昼夜 / 日落 / 雨天联动 `sunPosition`）
+- 降低饱和度与对比度
+- 远景 4-tap 柔化，减弱方块纹理细节
 
-### 2.2 — Painterly Lighting Model（P0，风格转折核心）
+实现：`lib/atmospheric.glsl`
 
-建立 `lib/PainterlyLighting.glsl`（或等效 include）：
+### 2.2 — Painterly Lighting Model ✅（已完成）
 
-- 3–4 个宽色阶（阴影 / 中间色 / 阳光面 / 极少数高光）
-- 主动减少连续 Lambert 梯度
-- 综合 sun direction、surface normal、sky visibility、depth、weather
-- **不是 PBR**，是块面概括
+`lib/painterly.glsl`，在 gbuffers 阶段替换 `albedo * lightmap`：
 
-### 2.3 — Stylized Shadow Map
+- 3 段宽色阶：冷阴影 → 中性中间 → 暖阳光（`NdotL` + `sunPosition`）
+- `lmcoord` 控制户外/洞穴/火把可见性（非最终颜色来源）
+- 材质分支：`MAT_FOLIAGE`（黄绿日光 + 蓝绿阴影 + 逆光 rim）、`MAT_WATER`（青绿调）
+- `PAINTERLY_STRENGTH` 滑块可回混 vanilla lightmap
 
-- 1024/2048 shadow map，soft filtering
-- 大块柔和投影，轻微暖/冷 tint
-- 重点在 **shadow shape**，不在 shadow realism
+待办：迁移到 composite deferred 路径、结合 shadow map
+
+### 2.3 — Stylized Shadow Map ✅（已完成）
+
+- `shadow.vsh/fsh` + `shadow_water` — 地形/水面投射阴影
+- `lib/shadow.glsl` — 透视畸变 + 5×5 软 PCF + 坡度 bias
+- 接入 `shadePainterly()`：仅户外太阳光受阴影影响，火把/洞穴 ambient 不受影响
+- 投影区冷紫蓝 tint（`stylizedShadowTint`），最低亮度保留 ~32% 避免死黑
+- `shaders.properties`：`shadowMapResolution=2048`，`shadowDistance=128`
+- 滑块：`SHADOW_STRENGTH`、`SHADOW_SOFTNESS`
+
+待办：`shadow_entities`、树叶半透明投影
 
 ### 2.4 — Foliage Rendering 2.0（最大视觉杠杆）
 
@@ -177,15 +194,22 @@ Phase 2 主体完成后，再连同 Bloom 等一并重调。
 GoldenHaze/
 └─ shaders/
    ├─ shaders.properties           # 缓冲区配置 + 可调选项
-   ├─ gbuffers_terrain.vsh/.fsh   # 方块几何体
+   ├─ lib/gbuffer.glsl            # GBuffer 编码：法线 + 材质 ID
+   ├─ lib/painterly.glsl          # 宽色阶手绘光照模型
+   ├─ lib/atmospheric.glsl        # 空气透视
+   ├─ lib/shadow.glsl             # 风格化阴影采样
+   ├─ shadow.vsh/.fsh             # 阴影贴图 pass
+   ├─ shadow_water.vsh/.fsh       # 水面阴影
+   ├─ gbuffers_terrain.vsh/.fsh # 方块几何体：scene + GBuffer
    ├─ gbuffers_water.vsh/.fsh     # 水面
    ├─ gbuffers_basic.vsh/.fsh     # 兜底 pass
    ├─ gbuffers_skybasic.vsh/.fsh  # 天空穹顶：昼夜渐变 + 程序云
    ├─ gbuffers_skytextured.vsh/.fsh # 太阳/月亮
-   ├─ composite.vsh/.fsh           # Bloom 模糊 第 1 步（水平）
-   ├─ composite1.vsh/.fsh          # Bloom 模糊 第 2 步（垂直）
-   ├─ composite2.vsh/.fsh          # 丁达尔光束
-   ├─ final.vsh/.fsh              # 合成 + tonemap + 调色 + 颗粒
+   ├─ composite.vsh/.fsh           # Bloom bright-pass extract
+   ├─ composite1.vsh/.fsh          # Bloom 模糊（水平）
+   ├─ composite2.vsh/.fsh          # Bloom 模糊（垂直）
+   ├─ composite3.vsh/.fsh          # 丁达尔光束
+   └─ final.vsh/.fsh              # 合成 + tonemap + 调色 + 颗粒
    └─ textures/canvas.png         # 纸张颗粒纹理
 ```
 
@@ -202,9 +226,7 @@ Phase 2 将新增 `lib/`（共享 GLSL）、扩展 GBuffer 输出、补全 entit
 ## 已知限制
 
 - 生物 / 手部 / 天气 / 粒子等 pass 未实现（走原版 fallback，风格断裂）。
-- 无 normal buffer、shadow map、depth-based lighting pipeline。
-- Terrain 光照完全依赖 vanilla lightmap，无自有 Lighting Model。
-- 无空气透视；split-toning 仅依据最终像素亮度，未综合法线/太阳方向等。
+- Stylized shadow map 已在 terrain/water/basic 生效；entities 仍走 vanilla。
 - 所有已实现效果的参数已接入光影设置界面，可在游戏内实时调节。
 
 ## 工具
