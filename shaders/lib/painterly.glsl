@@ -8,6 +8,9 @@
  * Phase 2.3 adds stylized sun shadow map on outdoor surfaces.
  */
 
+#ifndef GOLDENHAZE_PAINTERLY
+#define GOLDENHAZE_PAINTERLY
+
 #include "/lib/shadow.glsl"
 #include "/lib/palette.glsl"
 
@@ -48,8 +51,8 @@ vec3 painterlySunTint(vec3 sunDir) {
 }
 
 // Cool sky hemisphere — fills shadow sides with blue-gray instead of black.
-vec3 painterlySkyFill(vec3 normal, float skyVis) {
-    float up = normal.y * 0.5 + 0.5;
+vec3 painterlySkyFill(vec3 worldNormal, float skyVis) {
+    float up = worldNormal.y * 0.5 + 0.5;
     vec3 coolSky  = vec3(0.46, 0.56, 0.72);
     vec3 blueGray = vec3(0.34, 0.40, 0.52);
     return mix(blueGray, coolSky, up) * skyVis;
@@ -119,7 +122,7 @@ vec3 shadePainterly(vec3 albedo, vec3 normal, vec3 worldNormal, vec3 sunDir,
 
     vec3 sunLight  = painterlyDirectionalLight(normal, sunDir, materialId,
                                                skyVis, sunShadow) * SUN_STRENGTH;
-    vec3 skyLight  = painterlySkyFill(normal, skyVis) * SKY_STRENGTH;
+    vec3 skyLight  = painterlySkyFill(worldNormal, skyVis) * SKY_STRENGTH;
     vec3 bounce    = painterlyBounceFill(worldNormal, materialId, sunDir, skyVis)
                    * BOUNCE_STRENGTH;
     vec3 ambient   = painterlyAmbientFill(skyVis, blockVis, vanillaLight)
@@ -137,3 +140,5 @@ vec3 shadePainterly(vec3 albedo, vec3 normal, vec3 worldNormal, vec3 sunDir,
 
     return mix(vanilla, painterly, strength);
 }
+
+#endif

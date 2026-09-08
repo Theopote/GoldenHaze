@@ -6,6 +6,9 @@
  * so grass / wood / stone / soil / snow share one cohesive look.
  */
 
+#ifndef GOLDENHAZE_PALETTE
+#define GOLDENHAZE_PALETTE
+
 #include "/lib/gbuffer.glsl"
 
 // Map block.properties mc_Entity IDs → MAT_* constants.
@@ -100,3 +103,5 @@ vec3 applyMaterialPalette(vec3 albedo, float materialId, float strength) {
 
     return mix(albedo, paletted, strength);
 }
+
+#endif

@@ -73,6 +73,37 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 
 ---
 
+## Phase 2 稳定化（进行中）
+
+### Lib include 层级
+
+```
+gbuffer.glsl          — MAT_*、pack/unpack、readMaterialId、isSkyMaterial
+├── palette.glsl
+├── shadow.glsl
+├── painterly.glsl    — Sun / Sky / Bounce（palette + shadow）
+├── atmospheric.glsl
+├── bloom.glsl        — 语义 bloom（不依赖 atmospheric）
+└── debug.glsl
+```
+
+所有 lib 文件使用 `#ifndef GOLDENHAZE_*` guard，避免 `final.fsh` 等多 include 路径重定义。
+
+### 法线空间约定
+
+| 用途 | 空间 |
+|------|------|
+| GBuffer 编码、NdotL 太阳光、阴影、Fresnel、逆光 rim | **viewNormal** |
+| Sky 填充、Bounce、树冠顶/底色阶、水面水平光带 | **worldNormal** |
+
+混用 view/world 会导致转头时色块漂移——稳定化阶段已统一。
+
+### 已修 P0
+
+- `readMaterialId` / `isSkyMaterial` 归位 `gbuffer.glsl`（`composite.fsh` 可独立编译）
+
+---
+
 ## 渲染管线
 
 ```

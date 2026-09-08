@@ -6,6 +6,9 @@
  * not every high-luma surface.
  */
 
+#ifndef GOLDENHAZE_BLOOM
+#define GOLDENHAZE_BLOOM
+
 #include "/lib/gbuffer.glsl"
 
 float materialBloomWeight(float materialId) {
@@ -35,3 +38,5 @@ float semanticBloomMask(vec3 scene, float materialId, float threshold) {
 
     return lumaMask * semantic;
 }
+
+#endif

@@ -6,6 +6,9 @@
  * that pushes the world from "game world" toward "painted backdrop".
  */
 
+#ifndef GOLDENHAZE_ATMOSPHERIC
+#define GOLDENHAZE_ATMOSPHERIC
+
 #include "/lib/gbuffer.glsl"
 
 // View-space depth from Iris depthtex0 ([0,1] hyperbolic depth).
@@ -37,15 +40,6 @@ vec3 atmosphericHorizonColor(vec3 sunPosition, float rainStrength) {
     return hazeCol;
 }
 
-// Material ID from colortex1 alpha (see gbuffer.glsl packGBuffer).
-float readMaterialId(vec4 gbuffer) {
-    return gbuffer.a * 255.0;
-}
-
-bool isSkyMaterial(float materialId) {
-    return abs(materialId - MAT_SKY) < 0.5;
-}
-
 // Shift toward horizon color, pull saturation down, gently crush contrast.
 vec3 applyAtmosphericPerspective(vec3 color, float haze, vec3 horizonColor) {
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
@@ -66,3 +60,5 @@ vec3 softenDistantDetail(sampler2D sceneTex, vec2 uv, vec2 texelSize,
         texture2D(sceneTex, uv + vec2( 0.0, -o.y)).rgb
     ) * 0.25;
 }
+
+#endif

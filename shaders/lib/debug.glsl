@@ -13,6 +13,9 @@
  *   8 = bloom mask (colortex2 pre-grade)
  */
 
+#ifndef GOLDENHAZE_DEBUG
+#define GOLDENHAZE_DEBUG
+
 #include "/lib/gbuffer.glsl"
 
 vec3 debugMaterialColor(float materialId) {
@@ -82,3 +85,5 @@ vec3 applyDebugView(int mode, vec3 scene, vec4 gbuffer, float depth,
     }
     return scene;
 }
+
+#endif

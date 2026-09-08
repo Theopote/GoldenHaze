@@ -55,7 +55,7 @@ void writeWeatherGbuffer(vec3 albedo, float alpha, vec2 lmcoord, vec3 normal,
     vec3 tint = mix(rainTint, snowTint, smoothstep(0.35, 0.75, albedo.r + albedo.b));
 
     vec3 base = mix(albedo, tint, 0.62);
-    vec3 skyFill = painterlySkyFill(normal, skyVis) * SKY_STRENGTH;
+    vec3 skyFill = painterlySkyFill(worldNormal, skyVis) * SKY_STRENGTH;
     vec3 ambient = painterlyAmbientFill(skyVis, blockVis, vec3(0.5)) + skyFill;
     vec3 lit = base * ambient;
     lit = mix(lit, vec3(dot(lit, vec3(0.333))) * 0.55, rainStrength * 0.65);

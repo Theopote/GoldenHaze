@@ -50,7 +50,7 @@ void main() {
         lightmapVisibility(lmcoord, skyVis, blockVis);
 
         litColor = applyFoliageShading(baseAlbedo, litColor, worldPos, normal,
-                                       sunPosition, lmcoord, skyVis,
+                                       worldNormal, sunPosition, lmcoord, skyVis,
                                        frameTimeCounter, FOLIAGE_STRENGTH,
                                        SHIMMER_STRENGTH);
     }

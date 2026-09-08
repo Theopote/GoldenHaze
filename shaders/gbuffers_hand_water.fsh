@@ -42,8 +42,9 @@ void main() {
 
     float skyVis = smoothstep(0.02, 0.28, lmcoord.y);
     litColor = applyWaterShading(albedo.rgb, litColor, worldPos, feetPlayerPos,
-                                   normal, viewDir, sunPosition, lmcoord,
-                                   rainStrength, 0.0, WATER_STRENGTH * 0.5,
+                                   normal, worldNormal, viewDir, sunPosition,
+                                   lmcoord, rainStrength, 0.0,
+                                   WATER_STRENGTH, WATER_STRENGTH * 0.5,
                                    WATER_DIST_NEAR, WATER_DIST_FAR);
 
     gl_FragData[0] = vec4(litColor, albedo.a);

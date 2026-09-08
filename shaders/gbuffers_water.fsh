@@ -42,8 +42,8 @@ void main() {
                                    SHADOW_STRENGTH, SHADOW_SOFTNESS);
 
     litColor = applyWaterShading(albedo.rgb, litColor, worldPos, feetPlayerPos,
-                                 normal, viewDir, sunPosition, lmcoord,
-                                 rainStrength, frameTimeCounter,
+                                 normal, worldNormal, viewDir, sunPosition,
+                                 lmcoord, rainStrength, frameTimeCounter,
                                  WATER_STRENGTH, SHIMMER_STRENGTH,
                                  WATER_DIST_NEAR, WATER_DIST_FAR);
 

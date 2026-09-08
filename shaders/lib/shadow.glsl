@@ -5,6 +5,9 @@
  * shape and broad penumbra, not PCSS realism.
  */
 
+#ifndef GOLDENHAZE_SHADOW
+#define GOLDENHAZE_SHADOW
+
 const int   shadowMapResolution      = 1024;
 const float shadowDistanceRenderMul  = 1.0;
 const bool  shadowtex0Nearest        = true;
@@ -84,3 +87,5 @@ vec3 stylizedShadowTint(float shadowVis) {
     vec3 coolShadow = vec3(0.58, 0.60, 0.82);
     return mix(coolShadow, vec3(1.0), shadowVis);
 }
+
+#endif

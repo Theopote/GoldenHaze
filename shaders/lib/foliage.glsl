@@ -30,10 +30,11 @@ float foliageVolumeNoise(vec3 worldPos) {
     return n1 * 0.65 + n2 * 0.35;
 }
 
-// Warm top / natural mid / cool underside — driven by face normal + weak world height.
-vec3 foliageVerticalPalette(vec3 albedo, vec3 worldPos, vec3 normal, float skyVis) {
-    float topFace    = smoothstep(0.20, 0.82,  normal.y);
-    float bottomFace = smoothstep(0.20, 0.82, -normal.y);
+// Warm top / natural mid / cool underside — worldNormal + weak world height.
+vec3 foliageVerticalPalette(vec3 albedo, vec3 worldPos, vec3 worldNormal,
+                            float skyVis) {
+    float topFace    = smoothstep(0.20, 0.82,  worldNormal.y);
+    float bottomFace = smoothstep(0.20, 0.82, -worldNormal.y);
 
     vec3 topTint    = vec3(1.14, 1.10, 0.78);
     vec3 bottomTint = vec3(0.70, 0.90, 0.86);
@@ -107,14 +108,14 @@ vec3 foliageSunFlecks(vec3 lit, vec3 worldPos, float skyVis,
  * `baseAlbedo`    = texture albedo before lighting (for tint ratio).
  */
 vec3 applyFoliageShading(vec3 baseAlbedo, vec3 painterlyLit, vec3 worldPos,
-                         vec3 normal, vec3 sunDir, vec2 lmcoord, float skyVis,
-                         float frameTime, float foliageStrength,
-                         float shimmerStrength) {
+                         vec3 normal, vec3 worldNormal, vec3 sunDir,
+                         vec2 lmcoord, float skyVis, float frameTime,
+                         float foliageStrength, float shimmerStrength) {
     if (foliageStrength < 0.001) {
         return painterlyLit;
     }
 
-    vec3 tinted = foliageVerticalPalette(baseAlbedo, worldPos, normal, skyVis);
+    vec3 tinted = foliageVerticalPalette(baseAlbedo, worldPos, worldNormal, skyVis);
     tinted = foliageFacingTint(tinted, normal, sunDir, skyVis);
 
     vec3 tintRatio = tinted / max(baseAlbedo, vec3(0.001));
