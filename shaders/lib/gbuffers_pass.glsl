@@ -7,6 +7,8 @@
 
 #include "/lib/painterly.glsl"
 
+uniform sampler2D lightmap;
+
 vec3 shadeUnlitTextured(vec3 albedo, vec3 sunDir, float rainStrength) {
     float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
     float day     = smoothstep(-0.10, 0.25, sunUp);
