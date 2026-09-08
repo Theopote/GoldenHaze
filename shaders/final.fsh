@@ -1,19 +1,22 @@
 /*
- * final — combine + warm color grade
+ * final — combine + warm color grade (Phase 2.9 retune)
  *
  * 1. Applies painterly atmospheric perspective to the scene (depthtex0).
- * 2. Adds blurred bloom (colortex2) and god rays (colortex3).
+ * 2. Adds restrained bloom (colortex2) and god rays (colortex3) as accents.
  * 3. Split-tones, tonemap, vignette, fixed screen-space paper grain.
+ *
+ * Post defaults assume Phase 2 stylized lighting is already doing the heavy
+ * lifting — bloom/god-rays should read as atmosphere, not the main look.
  */
 #version 120
 
 #include "/lib/atmospheric.glsl"
 
-#define BLOOM_STRENGTH        0.8  // [0.00 0.20 0.40 0.60 0.80 1.00 1.30 1.60]
-#define GODRAY_STRENGTH       0.45 // [0.00 0.30 0.45 0.60 0.90 1.20 1.60 2.00]
-#define WARMTH                1.0  // [0.00 0.30 0.60 1.00 1.40 1.80]
-#define VIGNETTE_STRENGTH     0.6  // [0.00 0.20 0.40 0.60 0.80 1.00]
-#define GRAIN_STRENGTH        0.35 // [0.00 0.30 0.35 0.60 1.00 1.50]
+#define BLOOM_STRENGTH        0.50 // [0.00 0.20 0.40 0.50 0.60 0.80 1.00 1.30]
+#define GODRAY_STRENGTH       0.32 // [0.00 0.20 0.32 0.45 0.60 0.90 1.20 1.60]
+#define WARMTH                0.85 // [0.00 0.30 0.60 0.85 1.00 1.40 1.80]
+#define VIGNETTE_STRENGTH     0.42 // [0.00 0.20 0.40 0.42 0.60 0.80 1.00]
+#define GRAIN_STRENGTH        0.25 // [0.00 0.20 0.25 0.35 0.60 1.00 1.50]
 #define CHROMA_STRENGTH       0.0  // [0.00 0.30 0.60 1.00 1.50] optional cinematic
 #define ATMOSPHERE_STRENGTH   1.0  // [0.00 0.50 0.75 1.00 1.25 1.50]
 #define ATMOSPHERE_START     24.0  // [8 16 24 32 48 64 96]
@@ -41,16 +44,16 @@ vec3 warmGrade(vec3 color) {
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
     color += mix(shadowTint, highlightTint, smoothstep(0.2, 0.8, luma));
 
-    color = mix(vec3(luma), color, 1.0 + 0.15 * WARMTH);
+    color = mix(vec3(luma), color, 1.0 + 0.10 * WARMTH);
     return color;
 }
 
 vec3 tonemap(vec3 x) {
-    return x / (x + vec3(0.6));
+    return x / (x + vec3(0.65));
 }
 
 vec3 softCurve(vec3 x) {
-    return x * (0.92 + 0.08 * x) + vec3(0.028);
+    return x * (0.93 + 0.07 * x) + vec3(0.022);
 }
 
 void main() {
@@ -86,7 +89,10 @@ void main() {
     vec3 bloom  = texture2D(colortex2, texcoord).rgb;
     vec3 shafts = texture2D(colortex3, texcoord).rgb;
 
-    vec3 color = scene + bloom * BLOOM_STRENGTH + shafts * GODRAY_STRENGTH;
+    float weatherFade = 1.0 - rainStrength * 0.55;
+    vec3 color = scene
+               + bloom  * BLOOM_STRENGTH  * weatherFade
+               + shafts * GODRAY_STRENGTH * weatherFade;
     color = tonemap(color);
     color = softCurve(color);
     color = warmGrade(color);
@@ -100,7 +106,7 @@ void main() {
     float g2 = texture2D(canvas, texcoord * res / 512.0).r;
     float grain = (g1 * 0.65 + g2 * 0.35) - 0.5;
     float luma2 = dot(color, vec3(0.299, 0.587, 0.114));
-    color += grain * 0.05 * GRAIN_STRENGTH * (1.0 - luma2 * 0.6);
+    color += grain * 0.035 * GRAIN_STRENGTH * (1.0 - luma2 * 0.55);
 
     gl_FragColor = vec4(color, 1.0);
 }

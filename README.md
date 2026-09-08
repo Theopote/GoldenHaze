@@ -205,15 +205,36 @@ FINAL
 
 共享实现：`lib/gbuffers_pass.glsl`（`writeEntityGbuffer` 等）
 
-### 2.9 — 后期参数重调（最后 10%）
+### 2.9 — 后期参数重调（最后 10%）✅
 
-部分已在 Phase 1 末期预先收敛（`final.fsh` 默认值）：
+Phase 2 手绘管线（光照 / 材质 / 大气）已承担主风格，后期只做 accent，不再主导画面。
 
-- God Ray 默认 `0.45`（原 `0.9`），降级为辅助气氛
-- Chroma Aberration 默认 `0.0`（原 `0.6`），可选 cinematic 效果
-- Paper grain 默认 `0.35`（原 `1.0`），固定 screen-space、不 drift
+| 参数 | 原默认 | 新默认 | 说明 |
+|------|--------|--------|------|
+| `BLOOM_STRENGTH` | 0.80 | **0.50** | 场景已有 painterly 高光与 foliage sparkle |
+| `BLOOM_THRESHOLD` | 0.55 | **0.62** | 仅最亮区域（太阳、水面、眼睛）进入 bloom |
+| `GODRAY_STRENGTH` | 0.45 | **0.32** | 进一步降级为辅助气氛 |
+| `GODRAY_EXPOSURE` | 0.50 | **0.40** | 光柱累积更柔和 |
+| `GODRAY_DENSITY` | 0.85 | **0.75** | 采样步长略松，减少硬边 |
+| `WARMTH` | 1.00 | **0.85** | 调色板已偏暖，split-tone 略收 |
+| `VIGNETTE_STRENGTH` | 0.60 | **0.42** | 暗角更轻，避免压暗手绘色阶 |
+| `GRAIN_STRENGTH` | 0.35 | **0.25** | 纸纹更 subtle |
+| `SHIMMER_STRENGTH` | 1.00 | **0.75** | foliage / 水面闪点配合更高 bloom 阈值 |
+| `CHROMA_STRENGTH` | 0.60 | **0.00** | 可选 cinematic，默认关闭 |
 
-Phase 2 主体完成后，再连同 Bloom 等一并重调。
+其他收敛（Phase 1 末期 + 2.9）：
+
+- Paper grain 固定 screen-space、不 drift
+- `final.fsh` 雨天削弱 bloom / god-ray（`weatherFade`）
+- tonemap 肩部 `0.65`、softCurve 抬升 `0.022`，配合更低 bloom 保持通透
+
+**游戏内验收清单：**
+
+1. 正午林地 — bloom 只在树冠亮边与水面，不糊全局
+2. 日出 / 日落 — god-ray 可见但不盖过云与大气雾
+3. 雨天 — 光柱与 bloom 明显减弱
+4. 洞穴 / 夜间 — vignette 不压死暗部色阶
+5. 实体眼睛 / 闪电 — 仍有局部 bloom，但整体不刺眼
 
 ---
 

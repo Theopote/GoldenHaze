@@ -10,9 +10,9 @@
 #define ENABLE_GODRAYS // [on/off default: on]
 
 #define GODRAY_SAMPLES   64    // [32 48 64 80 100]
-#define GODRAY_DENSITY    0.85 // [0.50 0.65 0.85 1.00 1.20]
+#define GODRAY_DENSITY    0.75 // [0.50 0.65 0.75 0.85 1.00 1.20]
 #define GODRAY_DECAY      0.94 // [0.88 0.91 0.94 0.96 0.98]
-#define GODRAY_EXPOSURE   0.50 // [0.25 0.35 0.50 0.70 1.00]
+#define GODRAY_EXPOSURE   0.40 // [0.20 0.30 0.40 0.50 0.70 1.00]
 
 #define GODRAY_SAMPLES_F  float(GODRAY_SAMPLES)
 

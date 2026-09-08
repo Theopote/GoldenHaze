@@ -13,7 +13,7 @@
 #define WATER_DIST_FAR    40.0 // [24.0 40.0 64.0 96.0 128.0]
 #define SHADOW_STRENGTH    1.0 // [0.00 0.50 0.75 1.00]
 #define SHADOW_SOFTNESS    2.5 // [1.0 1.5 2.0 2.5 3.5 5.0]
-#define SHIMMER_STRENGTH   1.0 // [0.00 0.30 0.60 1.00 1.50 2.00]
+#define SHIMMER_STRENGTH   0.75 // [0.00 0.30 0.60 0.75 1.00 1.50 2.00]
 
 uniform sampler2D texture;
 uniform sampler2D lightmap;

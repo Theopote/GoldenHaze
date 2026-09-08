@@ -7,7 +7,7 @@
  */
 #version 120
 
-#define BLOOM_THRESHOLD 0.55 // [0.30 0.40 0.50 0.55 0.65 0.75 0.85]
+#define BLOOM_THRESHOLD 0.62 // [0.30 0.40 0.50 0.55 0.62 0.70 0.80]
 
 uniform sampler2D colortex0;
 
