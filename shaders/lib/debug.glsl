@@ -7,10 +7,13 @@
  *   2 = depth
  *   3 = material ID
  *   4 = NdotL (sun-facing)
- *   5 = sky-light proxy (outdoor fill estimate)
- *   6 = block-light proxy (torch / cave estimate)
+ *   5 = Sky Proxy   — NOT real lightmap.y (final has no lmcoord;
+ *                     guesses outdoor fill from scene + depth)
+ *   6 = Torch Proxy — NOT real lightmap.x (warm/enclosed scene guess)
  *   7 = atmosphere haze
  *   8 = bloom mask (colortex2 pre-grade)
+ *
+ * Do not use modes 5/6 to validate lightmap correctness.
  */
 
 #ifndef GOLDENHAZE_DEBUG
@@ -33,8 +36,8 @@ vec3 debugMaterialColor(float materialId) {
     return vec3(0.70);
 }
 
-// Outdoor sky-fill estimate from scene luminance + depth (not exact lmcoord).
-float debugSkyLightProxy(vec3 scene, float materialId, float linearZ) {
+// Sky Proxy — outdoor-fill guess from scene luma + depth. Not lmcoord.y.
+float debugSkyProxy(vec3 scene, float materialId, float linearZ) {
     if (isSkyMaterial(materialId)) return 1.0;
     float luma = dot(scene, vec3(0.299, 0.587, 0.114));
     float outdoor = smoothstep(0.06, 0.28, luma);
@@ -42,12 +45,12 @@ float debugSkyLightProxy(vec3 scene, float materialId, float linearZ) {
     return clamp(outdoor * openAir, 0.0, 1.0);
 }
 
-// Block / torch warmth proxy — dark enclosed pixels with warm tint.
-float debugBlockLightProxy(vec3 scene, float materialId, float linearZ) {
+// Torch Proxy — warm/enclosed scene guess. Not lmcoord.x / block light.
+float debugTorchProxy(vec3 scene, float materialId, float linearZ) {
     if (isSkyMaterial(materialId)) return 0.0;
     float luma = dot(scene, vec3(0.299, 0.587, 0.114));
     float warm = smoothstep(0.35, 0.75, scene.r - scene.b * 0.35);
-    float enclosed = smoothstep(32.0, 4.0, linearZ) * (1.0 - debugSkyLightProxy(scene, materialId, linearZ));
+    float enclosed = smoothstep(32.0, 4.0, linearZ) * (1.0 - debugSkyProxy(scene, materialId, linearZ));
     return clamp(warm * enclosed * smoothstep(0.04, 0.22, luma), 0.0, 1.0);
 }
 
@@ -71,12 +74,12 @@ vec3 applyDebugView(int mode, vec3 scene, vec4 gbuffer, float depth,
         return vec3(ndotl);
     }
     if (mode == 5) {
-        float sky = debugSkyLightProxy(scene, readMaterialId(gbuffer), linearZ);
-        return vec3(sky);
+        // Sky Proxy — not real lightmap sky light.
+        return vec3(debugSkyProxy(scene, readMaterialId(gbuffer), linearZ));
     }
     if (mode == 6) {
-        float block = debugBlockLightProxy(scene, readMaterialId(gbuffer), linearZ);
-        return vec3(block);
+        // Torch Proxy — not real lightmap block light.
+        return vec3(debugTorchProxy(scene, readMaterialId(gbuffer), linearZ));
     }
     if (mode == 7) {
         return vec3(haze);

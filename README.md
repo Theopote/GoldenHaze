@@ -36,7 +36,7 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 | 材质色板 | 8/10 | 8 组 block.properties + palette.glsl |
 | 阴影 | 6.5/10 | 1024² + 3×3 PCF，冷色投影 tint |
 | Bloom | 7.5/10 | 语义材质权重，抑制雪地/石材误发光 |
-| 调试 | 7/10 | DEBUG_VIEW 0–8（5/6 为 proxy） |
+| 调试 | 7/10 | DEBUG_VIEW 0–8（5/6 = Sky/Torch Proxy，非 lightmap） |
 | 实体覆盖 | 8/10 | MAT_ENTITY + 完整 pass 链 |
 
 ---
@@ -65,7 +65,7 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 | 18 | Shadow 1024 + 轻量 PCF | ✅ |
 | 19 | 完整管线架构 | ✅ forward painterly + composite post |
 | 20 | Phase 2.1–2.9 | ✅ |
-| 21 | DEBUG_VIEW 0–8 | ✅（5/6 为场景 proxy） |
+| 21 | DEBUG_VIEW 0–8 | ✅（5=Sky Proxy / 6=Torch Proxy，非 lightmap） |
 | 22 | shaders.properties 分组 UI | ✅ |
 | 23 | README 与实现一致 | ✅ 本节 |
 
@@ -359,8 +359,8 @@ Phase 2 核心模块已全部落地；当前优先 **稳定现架构与明暗层
 | 2 | 深度 |
 | 3 | 材质 ID 色码 |
 | 4 | NdotL（向阳分面） |
-| 5 | 天空光 proxy |
-| 6 | 方块光 proxy |
+| 5 | Sky Proxy（非真实 lightmap，勿用来验 sky light） |
+| 6 | Torch Proxy（非真实 lightmap，勿用来验 block light） |
 | 7 | 大气 haze |
 | 8 | Bloom mask |
 

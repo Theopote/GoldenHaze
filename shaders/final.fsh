@@ -5,7 +5,8 @@
  * 2. Adds restrained bloom (colortex2) and god rays (colortex3) as accents.
  * 3. Split-tones, tonemap, vignette, fixed screen-space paper grain.
  *
- * DEBUG_VIEW 1–8 visualize GBuffer / depth / lighting proxies for tuning.
+ * DEBUG_VIEW 1–8 visualize GBuffer / depth / Sky·Torch proxies for tuning.
+ * Modes 5–6 are scene guesses (no lmcoord in final) — not real lightmap.
  */
 #version 120
 
