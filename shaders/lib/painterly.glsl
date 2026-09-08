@@ -27,9 +27,9 @@ void lightmapVisibility(vec2 lmcoord, out float skyVis, out float blockVis) {
     blockVis = smoothstep(0.02, 0.20, lmcoord.x);
 }
 
-void painterlyBandColors(float materialId, out vec3 shadowCol,
-                         out vec3 midCol, out vec3 sunCol) {
-    materialPaletteBands(materialId, shadowCol, midCol, sunCol);
+void painterlyBandColors(float materialId, out vec3 bandShadow,
+                         out vec3 bandMid, out vec3 bandSun) {
+    materialPaletteBands(materialId, bandShadow, bandMid, bandSun);
 }
 
 // Time-of-day sun tint: pale morning → cream noon → golden afternoon → orange sunset.
@@ -84,14 +84,14 @@ vec3 painterlyDirectionalLight(vec3 normal, vec3 sunDir, float materialId,
                                float skyVis, float sunShadow) {
     float NdotL = dot(normalize(normal), normalize(sunDir));
 
-    vec3 shadowCol, midCol, sunCol;
-    painterlyBandColors(materialId, shadowCol, midCol, sunCol);
+    vec3 bandShadow, bandMid, bandSun;
+    painterlyBandColors(materialId, bandShadow, bandMid, bandSun);
 
     float litBand = painterlyStep(-0.18, 0.22, NdotL);
     float sunBand = painterlyStep(0.18, 0.58, NdotL);
 
-    vec3 lightColor = mix(shadowCol, midCol, litBand);
-    lightColor = mix(lightColor, sunCol, sunBand);
+    vec3 lightColor = mix(bandShadow, bandMid, litBand);
+    lightColor = mix(lightColor, bandSun, sunBand);
 
     lightColor *= skyVis;
     lightColor *= painterlySunTint(sunDir);

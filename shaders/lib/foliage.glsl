@@ -91,7 +91,7 @@ vec3 foliageSunFlecks(vec3 lit, vec3 worldPos, float skyVis,
     float gust = sin(frameTime * 0.70 + worldPos.x * 0.05 + worldPos.z * 0.04) * 0.5 + 0.5;
     float gustGate = smoothstep(0.40, 0.76, gust);
 
-    vec2 sp  = worldPos.xz * 2.5 + worldPos.yy * 1.7;
+    vec2 sp  = worldPos.xz * 2.5 + vec2(worldPos.y * 1.7);
     float n1 = foliageVnoise(sp * 3.0);
     float n2 = foliageVnoise(sp * 5.0 + vec2(4.2, 1.8));
     float fleck = smoothstep(0.78, 0.95, n1 * n2 * 2.0);

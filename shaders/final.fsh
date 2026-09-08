@@ -22,6 +22,14 @@
 #define ATMOSPHERE_STRENGTH   1.0  // [0.00 0.50 0.75 1.00 1.25 1.50]
 #define ATMOSPHERE_START     24.0  // [8 16 24 32 48 64 96]
 #define ATMOSPHERE_END      160.0  // [80 120 160 200 256 320 480]
+// Shared option anchors (also defined in gbuffers passes; Iris scans all programs)
+#define SUN_STRENGTH        1.0  // [0.00 0.50 0.75 1.00 1.25 1.50]
+#define SKY_STRENGTH        0.85 // [0.00 0.40 0.65 0.85 1.00 1.25]
+#define BOUNCE_STRENGTH     0.35 // [0.00 0.15 0.25 0.35 0.50 0.75]
+#define PALETTE_STRENGTH    1.0  // [0.00 0.25 0.50 0.75 1.00]
+#define WATER_STRENGTH      1.0  // [0.00 0.25 0.50 0.75 1.00]
+#define WATER_DIST_NEAR     4.0  // [2.0 4.0 8.0 12.0 16.0]
+#define WATER_DIST_FAR     40.0  // [24.0 40.0 64.0 96.0 128.0]
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex1; // GBuffer: normal + material (sky mask)
