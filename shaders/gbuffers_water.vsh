@@ -23,5 +23,6 @@ void main() {
     worldPos      = feetPlayerPos + cameraPosition;
     viewNormal        = normalize(gl_NormalMatrix * gl_Normal);
     worldNormal   = normalize(mat3(gbufferModelViewInverse) * viewNormal);
+    // World-space surface → camera (to-camera). Used for Fresnel with worldNormal.
     viewDir       = normalize(cameraPosition - worldPos);
 }

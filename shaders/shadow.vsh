@@ -9,5 +9,6 @@ void main() {
     gl_Position = ftransform();
     texcoord    = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     vertexColor = gl_Color;
+    // Must match softShadowVisibility() sampling distortion in lib/shadow.glsl.
     gl_Position.xyz = distortShadowClipPos(gl_Position.xyz);
 }

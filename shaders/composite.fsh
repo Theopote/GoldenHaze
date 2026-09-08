@@ -1,5 +1,6 @@
 /*
- * composite — semantic bloom bright-pass extract
+ * composite — material-weighted bloom bright-pass extract
+ * (feature-level semantic mask is Phase 3 — see lib/bloom.glsl)
  *
  * Reads lit scene (colortex0) + GBuffer material (colortex1). Only
  * semantically bright surfaces (sun, sky, water, foliage, emissive)

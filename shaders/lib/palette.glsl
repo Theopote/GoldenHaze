@@ -11,6 +11,10 @@
 
 #include "/lib/gbuffer.glsl"
 
+// Soft chroma push toward palette anchors. Keep near 1.0 to avoid candy colors
+// once warmGrade / bloom also run in final.
+#define PALETTE_CHROMA 1.05 // [1.00 1.03 1.05 1.08 1.12]
+
 // Map block.properties mc_Entity IDs → MAT_* constants.
 float resolveTerrainMaterial(float blockId) {
     if (blockId > 0.5 && blockId < 1.5) return MAT_FOLIAGE;
@@ -99,7 +103,7 @@ vec3 applyMaterialPalette(vec3 albedo, float materialId, float strength) {
     vec3 paletted = albedo * albedoMul;
 
     float luma = dot(albedo, vec3(0.299, 0.587, 0.114));
-    paletted = mix(vec3(luma), paletted, 1.12);
+    paletted = mix(vec3(luma), paletted, PALETTE_CHROMA);
 
     return mix(albedo, paletted, strength);
 }

@@ -59,7 +59,7 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 | 12 | block.properties 材质组 1–8 | ✅ |
 | 13 | GoldenHaze Palette System | ✅ |
 | 14 | final.fsh 过时 TODO 清理 | ✅ |
-| 15 | Semantic Bloom | ✅ `lib/bloom.glsl` |
+| 15 | Semantic Bloom（材质级） | ✅ `lib/bloom.glsl`（feature mask → P3） |
 | 16 | God-ray 深度遮挡 | ⏳ P2（暂不实现） |
 | 17 | 空气透视 | ✅ |
 | 18 | Shadow 1024 + 轻量 PCF | ✅ |
@@ -69,7 +69,7 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 | 22 | shaders.properties 分组 UI | ✅ |
 | 23 | README 与实现一致 | ✅ 本节 |
 
-**刻意不做（P3）：** SSR、PBR、SSGI、PCSS、TAA、DOF、motion blur 等写实特性。
+**刻意不做（P3）：** SSR、PBR、SSGI、PCSS、TAA、DOF、motion blur；真水深（depthtex 前后比较）；feature-level bloom mask（colortex4 effect mask）。
 
 ---
 
@@ -202,8 +202,19 @@ FINAL
 `lib/water.glsl`，在 `gbuffers_water` 后处理：
 
 - **四层水体** — 底色 palette / 天空反射 Fresnel / 横向光带 / 微闪
+- 底色是 **相机水平距离** 色板（near / mid / far），**不是**光学水深  
+  （`horizDist = length(feetPlayerPos.xz)`；`WATER_DIST_NEAR` / `WATER_DIST_FAR`）
+- 真水深（水面 depth vs behind-water depth）留到需要时再做；当前距离色板够用
 - 洞穴/无天空光处保持暗水色
 - 滑块：`WATER_STRENGTH`、`WATER_DIST_NEAR`、`WATER_DIST_FAR`、`SHIMMER_STRENGTH`（高光带）
+
+### 2.9 附注 — Bloom 语义层级
+
+当前 `lib/bloom.glsl` 是 **材质级** 语义：`materialBloomWeight(MAT_*) × luma threshold`。  
+比纯亮度好（雪/石不易误发光），但整片亮水面仍会一起 bloom。  
+
+**Feature 级**（sun rim / leaf transmission / water ribbon / sparkle 主动写 mask）属 Phase 3；  
+稳定现架构前不扩 GBuffer（不急着开 colortex4）。
 
 ### 2.6 — Cloud 2.0 ✅（已完成）
 
@@ -300,7 +311,7 @@ GoldenHaze/
    ├─ lib/palette.glsl             # 统一材质色板（Phase 2.7）
    ├─ lib/cloud.glsl              # 分层形体云（Cloud 2.0）
    ├─ lib/atmospheric.glsl        # 空气透视
-   ├─ lib/bloom.glsl              # 语义 bloom 材质权重
+   ├─ lib/bloom.glsl              # 材质级语义 bloom（feature mask → P3）
    ├─ lib/debug.glsl              # DEBUG_VIEW 0–8
    ├─ lib/shadow.glsl             # 风格化阴影采样
    ├─ lib/gbuffers_pass.glsl        # 共享 entity/hand/particle 输出
@@ -334,7 +345,8 @@ GoldenHaze/
    └─ textures/canvas.png         # 纸张颗粒纹理
 ```
 
-Phase 2 核心模块已全部落地；后续扩展：god-ray depth 遮挡、gbuffers_line、deferred 光照迁移。
+Phase 2 核心模块已全部落地；当前优先 **稳定现架构与明暗层级**。  
+后续扩展（P2/P3）：god-ray depth 遮挡、gbuffers_line、deferred 光照迁移、feature bloom mask。
 
 ### DEBUG_VIEW 模式
 
@@ -363,6 +375,8 @@ Phase 2 核心模块已全部落地；后续扩展：god-ray depth 遮挡、gbuf
 ## 已知限制
 
 - `gbuffers_line`（钓鱼线、选中方块轮廓）仍 fallback 到 `gbuffers_basic`。
+- 水体底色按 **距离** 分段，不是光学水深。
+- Bloom 按 **材质 ID** 加权，尚非 ribbon/sparkle 级 feature mask。
 - 所有已实现效果的参数已接入光影设置界面，可在游戏内实时调节。
 
 ## 工具

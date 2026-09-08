@@ -17,7 +17,7 @@ float linearizeDepth(float depth, float nearPlane, float farPlane) {
     return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
 }
 
-// 0 = near camera, 1 = fully hazed (clamped by strength in the caller).
+// 0 = near camera, 1 = fully hazed. Caller must clamp after strength.
 float computeHaze(float linearDepth, float fogStart, float fogEnd) {
     return smoothstep(fogStart, fogEnd, linearDepth);
 }
@@ -48,10 +48,11 @@ vec3 applyAtmosphericPerspective(vec3 color, float haze, vec3 horizonColor) {
     return color;
 }
 
-// Cheap 4-tap soften — distant pixels lose blocky texture detail.
+// Cheap 4-tap soften — distant pixels lose blocky texture detail
+// (painterly simplification, not cinematic depth-of-field).
 vec3 softenDistantDetail(sampler2D sceneTex, vec2 uv, vec2 texelSize,
                          float haze) {
-    float radius = haze * 2.5;
+    float radius = haze * 1.8;
     vec2 o = texelSize * radius;
     return (
         texture2D(sceneTex, uv + vec2( o.x,  0.0)).rgb +

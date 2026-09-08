@@ -1,10 +1,21 @@
 /*
  * GoldenHaze — Water 2.0 four-layer model
  *
- * 1. Base water color   — shallow / mid / deep palette
+ * 1. Base water color   — near / mid / far *distance* palette
+ *                        (horizDist = length(feetPlayerPos.xz);
+ *                         NOT optical water depth. True depth via
+ *                         depthtex comparison is deferred — distance
+ *                         bands are enough for Phase 2.)
  * 2. Sky reflection     — view-angle Fresnel mix
  * 3. Sun ribbon         — horizontal broken highlight bands
  * 4. Micro sparkles     — subtle point glints on ribbons
+ *
+ * Space contract:
+ *   viewNormal  — view-space (NdotL with sunPosition)
+ *   worldNormal — world-space (up-facing, Fresnel with toCamera)
+ *   viewDir     — world-space direction from surface toward camera
+ *                 (cameraPosition - worldPos). Name kept for varying
+ *                 compatibility; treat as to-camera, not camera-to-surface.
  */
 
 float waterHash(vec2 p) {
@@ -37,7 +48,7 @@ void waterSkyPalette(vec3 sunDir, float rainStrength,
     waterMid = mix(waterMid, gray, rainStrength * 0.40);
 }
 
-// Layer 1 — base palette by distance and depth band.
+// Layer 1 — base palette by *camera distance* (near / mid / far), not water depth.
 vec3 waterLayerBase(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
                     vec3 sunDir, float skyVis, float rainStrength,
                     float distNear, float distFar) {
@@ -64,9 +75,11 @@ vec3 waterLayerBase(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
 }
 
 // Layer 2 — sky reflection via grazing view angle (stylized Fresnel).
-vec3 waterLayerSkyReflection(vec3 baseRgb, vec3 viewNormal, vec3 viewDir,
+// worldNormal + viewDir(to-camera) are both world-space.
+vec3 waterLayerSkyReflection(vec3 baseRgb, vec3 worldNormal, vec3 viewDir,
                              vec3 waterFar, float skyVis) {
-    float fresnel = pow(1.0 - max(dot(normalize(viewNormal), normalize(viewDir)), 0.0), 2.8);
+    float NdotV = max(dot(normalize(worldNormal), normalize(viewDir)), 0.0);
+    float fresnel = pow(1.0 - NdotV, 2.8);
     return mix(baseRgb, waterFar * 1.08, fresnel * 0.55 * skyVis);
 }
 
@@ -85,8 +98,10 @@ float waterSunRibbonMask(vec3 worldPos, vec3 viewNormal, vec3 worldNormal,
     float dash = waterVnoise(vec2(wp.x * 0.11, wp.z * 0.04) + frameTime * 0.06);
     band *= smoothstep(0.40, 0.72, dash);
 
+    // sunDir / viewNormal are view-space; grazing uses world-space pair.
     float sunFace = max(dot(normalize(viewNormal), normalize(sunDir)), 0.0);
-    float viewGrazing = pow(1.0 - max(dot(normalize(viewNormal), normalize(viewDir)), 0.0), 1.5);
+    float NdotV = max(dot(normalize(worldNormal), normalize(viewDir)), 0.0);
+    float viewGrazing = pow(1.0 - NdotV, 1.5);
 
     return band * sunFace * viewGrazing * skyVis * upFacing;
 }
@@ -99,7 +114,7 @@ float waterMicroSparkle(vec3 worldPos, float frameTime, float ribbonMask) {
 }
 
 vec3 waterPaletteAlbedo(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
-                        vec3 viewNormal, vec3 viewDir, vec3 sunDir,
+                        vec3 worldNormal, vec3 viewDir, vec3 sunDir,
                         float skyVis, float rainStrength,
                         float distNear, float distFar, float strength) {
     vec3 base = waterLayerBase(albedo, worldPos, feetPlayerPos, sunDir, skyVis,
@@ -107,7 +122,7 @@ vec3 waterPaletteAlbedo(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
 
     vec3 waterNear, waterMid, waterFar, waterSunset;
     waterSkyPalette(sunDir, rainStrength, waterNear, waterMid, waterFar, waterSunset);
-    vec3 layered = waterLayerSkyReflection(base, viewNormal, viewDir, waterFar, skyVis);
+    vec3 layered = waterLayerSkyReflection(base, worldNormal, viewDir, waterFar, skyVis);
 
     return mix(albedo, layered, strength);
 }
@@ -135,7 +150,7 @@ vec3 applyWaterShading(vec3 albedo, vec3 painterlyLit, vec3 worldPos,
     blockVis = smoothstep(0.02, 0.20, lmcoord.x);
 
     vec3 paletteAlbedo = waterPaletteAlbedo(albedo, worldPos, feetPlayerPos,
-                                            viewNormal, viewDir, sunDir, skyVis,
+                                            worldNormal, viewDir, sunDir, skyVis,
                                             rainStrength, distNear, distFar,
                                             waterStrength);
 

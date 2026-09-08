@@ -3,7 +3,7 @@
  *
  * DEBUG_VIEW in final.fsh:
  *   0 = final image
- *   1 = GBuffer normals
+ *   1 = GBuffer normals (decoded, remapped to [0,1])
  *   2 = depth
  *   3 = material ID
  *   4 = NdotL (sun-facing)
@@ -55,7 +55,8 @@ vec3 applyDebugView(int mode, vec3 scene, vec4 gbuffer, float depth,
                     float linearZ, float haze, vec3 bloomExtract,
                     vec3 sunDir) {
     if (mode == 1) {
-        return decodeNormal(gbuffer.rgb);
+        // Remap decoded view-normal [-1,1] → [0,1] for display (negatives clip otherwise).
+        return decodeNormal(gbuffer.rgb) * 0.5 + 0.5;
     }
     if (mode == 2) {
         return vec3(depth);

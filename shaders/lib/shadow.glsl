@@ -4,9 +4,16 @@
  * Soft, low-frequency sun occlusion with cool shading. Focus is
  * shape and broad penumbra, not PCSS realism.
  *
- * Note: avoid identifiers named exactly "tint" (Iris Sodium injects
- * a varying with that name) and avoid parameter names that match
- * function names (breaks some Iris glsl-transformer paths).
+ * Distortion contract (must stay identical on write + sample):
+ *   shadow.vsh / shadow_*.vsh  → gl_Position.xyz = distortShadowClipPos(...)
+ *   softShadowVisibility       → distort the lookup clip pos the same way
+ *   z *= 0.5 extends usable depth when the sun is low (Iris tutorial idiom)
+ *
+ * Filtering: nearest shadowtex0 + 3x3 box PCF. Do not switch to hardware
+ * shadow samplers / PCSS without a deliberate style pass.
+ *
+ * Avoid identifiers named exactly "tint" (Iris Sodium injects a varying
+ * with that name) and avoid parameter names that match function names.
  */
 
 #ifndef GOLDENHAZE_SHADOW
@@ -16,15 +23,18 @@ const int   shadowMapResolution      = 1024;
 const float shadowDistanceRenderMul  = 1.0;
 const bool  shadowtex0Nearest        = true;
 const bool  shadowtex0Mipmaps        = false;
+// Shared with distortShadowClipPos — change only here.
+const float SHADOW_DISTORT_Z_SCALE   = 0.5;
+const float SHADOW_DISTORT_FACTOR    = 0.10;
 
 uniform sampler2D shadowtex0;
 uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
 
 vec3 distortShadowClipPos(vec3 clipPos) {
-    float distortion = length(clipPos.xy) + 0.10;
+    float distortion = length(clipPos.xy) + SHADOW_DISTORT_FACTOR;
     clipPos.xy /= distortion;
-    clipPos.z  *= 0.5;
+    clipPos.z  *= SHADOW_DISTORT_Z_SCALE;
     return clipPos;
 }
 

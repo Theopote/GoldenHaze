@@ -1,9 +1,16 @@
 /*
- * GoldenHaze — semantic bloom mask (Phase 2.9+)
+ * GoldenHaze — material-weighted bloom mask (Phase 2.9+)
  *
- * Brightness alone makes snow / white stone glow. Weight bloom by material
- * so sun, sky, water, foliage transmission, and emissive entities bloom —
- * not every high-luma surface.
+ * Current level: MATERIAL semantic
+ *   Material Weight × Luminance Threshold
+ * Better than brightness-only (snow/stone no longer auto-glow), but still
+ * guesses from material ID — e.g. all bright water blooms, not just ribbons.
+ *
+ * Target level (Phase 3, not now): FEATURE semantic
+ *   gbuffers write an effect mask (sun rim / leaf transmission / water
+ *   ribbon / sparkle / emissive) into an auxiliary buffer; composite
+ *   samples that mask instead of inferring from MAT_* + luma.
+ * Do not expand GBuffer for this until Phase 2 is visually stable.
  */
 
 #ifndef GOLDENHAZE_BLOOM

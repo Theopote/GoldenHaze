@@ -23,5 +23,6 @@ void main() {
     vec3 viewPos = (gl_ModelViewMatrix * gl_Vertex).xyz;
     feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
     worldPos      = feetPlayerPos + cameraPosition;
+    // World-space surface → camera (to-camera). Used for Fresnel with worldNormal.
     viewDir       = normalize(cameraPosition - worldPos);
 }

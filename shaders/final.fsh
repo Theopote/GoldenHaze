@@ -27,6 +27,7 @@
 #define SKY_STRENGTH        0.60 // [0.00 0.40 0.55 0.60 0.70 0.85 1.00]
 #define BOUNCE_STRENGTH     0.20 // [0.00 0.10 0.15 0.20 0.25 0.35 0.50]
 #define PALETTE_STRENGTH    1.0  // [0.00 0.25 0.50 0.75 1.00]
+#define PALETTE_CHROMA      1.05 // [1.00 1.03 1.05 1.08 1.12]
 #define WATER_STRENGTH      1.0  // [0.00 0.25 0.50 0.75 1.00]
 #define WATER_DIST_NEAR     4.0  // [2.0 4.0 8.0 12.0 16.0]
 #define WATER_DIST_FAR     40.0  // [24.0 40.0 64.0 96.0 128.0]
@@ -84,12 +85,13 @@ void main() {
         haze = 0.0;
     }
 
-    haze *= ATMOSPHERE_STRENGTH;
+    haze = clamp(haze * ATMOSPHERE_STRENGTH, 0.0, 1.0);
 
     if (haze > 0.001) {
         vec2 texelSize = vec2(1.0 / viewWidth, 1.0 / viewHeight);
         vec3 softened = softenDistantDetail(colortex0, texcoord, texelSize, haze);
-        scene = mix(scene, softened, haze * 0.55);
+        // Detail reduction, not DoF — keep soften contribution modest.
+        scene = mix(scene, softened, haze * 0.30);
 
         vec3 horizonColor = atmosphericHorizonColor(sunPosition, rainStrength);
         scene = applyAtmosphericPerspective(scene, haze, horizonColor);
