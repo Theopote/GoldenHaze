@@ -5,6 +5,9 @@
  * painterly + palette + GBuffer output as terrain.
  */
 
+#ifndef GOLDENHAZE_GBUFFERS_PASS
+#define GOLDENHAZE_GBUFFERS_PASS
+
 #include "/lib/painterly.glsl"
 
 uniform sampler2D lightmap;
@@ -116,3 +119,5 @@ void writeLightningGbuffer(vec3 albedo, float alpha, vec3 viewNormal, vec3 sunDi
     gl_FragData[0] = vec4(bolt, alpha);
     gl_FragData[1] = packGBuffer(viewNormal, MAT_EMISSIVE);
 }
+
+#endif

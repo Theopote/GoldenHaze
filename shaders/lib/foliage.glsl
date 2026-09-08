@@ -10,6 +10,9 @@
  *   - integrated sun flecks
  */
 
+#ifndef GOLDENHAZE_FOLIAGE
+#define GOLDENHAZE_FOLIAGE
+
 float foliageHash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -127,3 +130,5 @@ vec3 applyFoliageShading(vec3 baseAlbedo, vec3 painterlyLit, vec3 worldPos,
 
     return mix(painterlyLit, lit, foliageStrength);
 }
+
+#endif

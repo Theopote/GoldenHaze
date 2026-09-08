@@ -5,12 +5,11 @@
 
 #include "/lib/gbuffers_pass.glsl"
 
-#define PAINTERLY_STRENGTH 0.5 // [0.00 0.25 0.50 0.75 1.00]
+#define PAINTERLY_STRENGTH 0.5
 #define SHADOW_STRENGTH    0.0  // overlay pass
-#define SHADOW_SOFTNESS    2.5 // [1.0 1.5 2.0 2.5 3.5 5.0]
+#define SHADOW_SOFTNESS    2.5
 
 uniform sampler2D texture;
-uniform sampler2D lightmap;
 uniform vec3 sunPosition;
 uniform float rainStrength;
 

@@ -18,6 +18,9 @@
  *                 compatibility; treat as to-camera, not camera-to-surface.
  */
 
+#ifndef GOLDENHAZE_WATER
+#define GOLDENHAZE_WATER
+
 float waterHash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -92,10 +95,10 @@ float waterSunRibbonMask(vec3 worldPos, vec3 viewNormal, vec3 worldNormal,
 
     vec2 wp = worldPos.xz;
     float waveA = sin(wp.x * 0.42 + frameTime * 0.22) * 0.5 + 0.5;
-    float waveB = sin(wp.x * 0.19 - wp.z * 0.08 + frameTime * 0.14) * 0.5 + 0.5;
+    float waveB = sin(wp.x * 0.19 - wp.y * 0.08 + frameTime * 0.14) * 0.5 + 0.5;
     float band  = smoothstep(0.68, 0.90, waveA * waveB);
 
-    float dash = waterVnoise(vec2(wp.x * 0.11, wp.z * 0.04) + frameTime * 0.06);
+    float dash = waterVnoise(vec2(wp.x * 0.11, wp.y * 0.04) + frameTime * 0.06);
     band *= smoothstep(0.40, 0.72, dash);
 
     // sunDir / viewNormal are view-space; grazing uses world-space pair.
@@ -166,3 +169,5 @@ vec3 applyWaterShading(vec3 albedo, vec3 painterlyLit, vec3 worldPos,
 
     return mix(painterlyLit, lit, waterStrength);
 }
+
+#endif

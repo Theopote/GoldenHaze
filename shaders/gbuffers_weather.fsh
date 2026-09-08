@@ -6,7 +6,6 @@
 #include "/lib/gbuffers_pass.glsl"
 
 uniform sampler2D texture;
-uniform sampler2D lightmap;
 uniform vec3 sunPosition;
 uniform float rainStrength;
 

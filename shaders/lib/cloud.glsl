@@ -6,6 +6,9 @@
  *   flat bottoms, sun-side expansion, hard silhouette / soft interior
  */
 
+#ifndef GOLDENHAZE_CLOUD
+#define GOLDENHAZE_CLOUD
+
 float cloudHash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -119,3 +122,5 @@ vec3 renderStylizedClouds(vec3 sky, vec3 dir, vec3 sunPosition,
     return shadeStylizedCloud(sky, cp, sunPosition, dir, cover,
                               day, sunset, up, rainStrength);
 }
+
+#endif
