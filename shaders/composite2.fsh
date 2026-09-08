@@ -25,9 +25,9 @@
 #define GODRAY_DECAY      0.94 // [0.88 0.91 0.94 0.96 0.98]
 #define GODRAY_EXPOSURE   0.50 // [0.25 0.35 0.50 0.70 1.00]
 
-// pre-computed float versions for the march loop (some drivers reject
-// float(INT_LITERAL) casts in #version 120)
-#define GODRAY_SAMPLES_F  64.0
+// Derive from GODRAY_SAMPLES so brightness normalization stays correct
+// when the in-game sample-count slider is changed.
+#define GODRAY_SAMPLES_F  float(GODRAY_SAMPLES)
 
 uniform sampler2D colortex1;
 uniform vec3 sunPosition;            // view-space direction to sun
@@ -47,6 +47,13 @@ void main() {
 
     // skip entirely when the sun is below / hugging the horizon
     if (sunUp > -0.08) {
+        vec3 sunDir = normalize(sunPosition);
+
+        // sun behind the camera (view space forward is -Z): fade out
+        // instead of trusting the projected screen position, which
+        // mirrors to the opposite side when sunDir.z crosses zero
+        float inFront = smoothstep(-0.05, 0.15, -sunDir.z);
+
         // project the sun direction to screen space
         vec4 clip = gbufferProjection * vec4(sunPosition, 1.0);
         vec2 sunScreen = clip.xy / clip.w * 0.5 + 0.5;
@@ -58,12 +65,7 @@ void main() {
         // fade shafts when looking far from the sun; keep a wider
         // margin when the sun is off-screen so shafts still sweep in
         float vis = 1.0 - smoothstep(0.55, 1.55, distFromSun);
-
-        // fade near screen edges to hide sampling streaks when the
-        // sun sits just outside the frame
-        vec2 edge = smoothstep(vec2(-0.15), vec2(0.15), texcoord)
-                  * smoothstep(vec2(-0.15), vec2(0.15), vec2(1.0) - texcoord);
-        vis *= edge.x * edge.y;
+        vis *= inFront;
 
         if (vis > 0.001) {
             vec2 dir = (sunScreen - texcoord) * (GODRAY_DENSITY / GODRAY_SAMPLES_F);
@@ -73,8 +75,14 @@ void main() {
 
             for (int i = 0; i < GODRAY_SAMPLES; i++) {
                 sampleUV += dir;
+
+                // sample point off-screen: contribute nothing instead
+                // of pulling in a clamped edge pixel that causes streaks
+                vec2 inBounds = step(vec2(0.0), sampleUV) * step(sampleUV, vec2(1.0));
+                float boundsMask = inBounds.x * inBounds.y;
+
                 vec3 s = texture2D(colortex1, sampleUV).rgb;
-                shafts += s * illum;
+                shafts += s * illum * boundsMask;
                 illum  *= GODRAY_DECAY;
             }
 

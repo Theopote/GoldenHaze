@@ -10,7 +10,7 @@ uniform float frameTimeCounter;
 varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
-varying vec3 viewPos;
+varying vec3 worldPos;
 
 /* DRAWBUFFERS:01 */
 
@@ -36,7 +36,7 @@ void main() {
     // to fake crossing ripples; hard-thresholded into small glints of
     // reflected sunlight. Scaled by sky light (lmcoord.y) so shaded or
     // underground water stays dull.
-    vec2 wp  = viewPos.xz;
+    vec2 wp  = worldPos.xz;
     float n1 = vnoise(wp * 1.6 + frameTimeCounter * vec2(0.35, 0.15));
     float n2 = vnoise(wp * 2.3 - frameTimeCounter * vec2(0.22, 0.40));
     float glint = smoothstep(0.72, 0.92, n1 * n2 * 2.0);

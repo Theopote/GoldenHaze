@@ -1,14 +1,19 @@
 #version 120
 
+uniform mat4 gbufferModelViewInverse;
+uniform vec3 cameraPosition;
+
 varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
-varying vec3 viewPos;
+varying vec3 worldPos;
 
 void main() {
     gl_Position = ftransform();
     texcoord    = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     lmcoord     = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
     vertexColor = gl_Color;
-    viewPos     = (gl_ModelViewMatrix * gl_Vertex).xyz;
+
+    vec3 viewPos = (gl_ModelViewMatrix * gl_Vertex).xyz;
+    worldPos     = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz + cameraPosition;
 }

@@ -17,7 +17,7 @@ uniform float frameTimeCounter;
 varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
-varying vec3 viewPos;
+varying vec3 worldPos;
 varying float blockId;
 
 /* DRAWBUFFERS:01 */
@@ -43,13 +43,13 @@ void main() {
     vec3 litColor = albedo.rgb * light;
 
     // Foliage shimmer (block.properties ID 1 = leaves): two layers of
-    // fine noise scrolling over the view-space position, thresholded
+    // fine noise scrolling over world-space position, thresholded
     // hard so only small bright flecks remain — sunlight catching
     // individual leaves as they sway. Scaled by sky light so it only
     // sparkles where the sun can actually reach, never in caves.
     float sparkle = 0.0;
     if (blockId > 0.5 && blockId < 1.5) {
-        vec2 sp  = viewPos.xz * 2.5 + viewPos.yy * 1.7;
+        vec2 sp  = worldPos.xz * 2.5 + worldPos.yy * 1.7;
         float n1 = vnoise(sp * 3.0 + frameTimeCounter * vec2(0.9, 0.4));
         float n2 = vnoise(sp * 5.0 - frameTimeCounter * vec2(0.6, 0.8));
         float fleck = smoothstep(0.78, 0.95, n1 * n2 * 2.0);
