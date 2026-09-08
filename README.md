@@ -37,7 +37,7 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 | 阴影 | 6.5/10 | 1024² + 3×3 PCF，冷色投影 tint |
 | Bloom | 7.5/10 | 语义材质权重，抑制雪地/石材误发光 |
 | 调试 | 7/10 | DEBUG_VIEW 0–8（5/6 = Sky/Torch Proxy，非 lightmap） |
-| 实体覆盖 | 8/10 | MAT_ENTITY + 完整 pass 链 |
+| 实体覆盖 | 8.5/10 | MAT_ENTITY + MAT_EMISSIVE + 完整 pass 链 |
 
 ---
 
@@ -151,7 +151,7 @@ FINAL
 
 - Bright-pass 已移出 gbuffers，改在 `composite.fsh` extract
 - `colortex1` 专用于 GBuffer，不再被 bloom 占用
-- 材质 ID：`MAT_DEFAULT` … `MAT_GLASS`（见 `lib/gbuffer.glsl`）
+- 材质 ID：`MAT_DEFAULT` … `MAT_EMISSIVE`（见 `lib/gbuffer.glsl`）
 - `worldNormal` + `viewNormal` 已在 terrain / water / entities pass 传递
 
 ### 2.1 — 空气透视 ✅（已完成）
@@ -249,7 +249,7 @@ FINAL
 
 ### 2.8 — 补全 entities 相关 pass ✅
 
-**`MAT_ENTITY` 专用色板**（暖色动画角色调）+ 完整 pass 覆盖：
+**`MAT_ENTITY`**（普通生物）+ **`MAT_EMISSIVE`**（眼睛 / 闪电 / 附魔闪光）+ 完整 pass 覆盖：
 
 | Pass | 内容 |
 |------|------|
@@ -356,7 +356,7 @@ Phase 2 核心模块已全部落地；当前优先 **稳定现架构与明暗层
 |----|------|
 | 0 | 最终画面 |
 | 1 | GBuffer 法线 |
-| 2 | 深度 |
+| 2 | 深度（linearZ / 160） |
 | 3 | 材质 ID 色码 |
 | 4 | NdotL（向阳分面） |
 | 5 | Sky Proxy（非真实 lightmap，勿用来验 sky light） |
@@ -377,7 +377,21 @@ Phase 2 核心模块已全部落地；当前优先 **稳定现架构与明暗层
 - `gbuffers_line`（钓鱼线、选中方块轮廓）仍 fallback 到 `gbuffers_basic`。
 - 水体底色按 **距离** 分段，不是光学水深。
 - Bloom 按 **材质 ID** 加权，尚非 ribbon/sparkle 级 feature mask。
+- `MAT_ENTITY`（普通生物/道具）与 `MAT_EMISSIVE`（眼睛/闪电/附魔闪光）已拆分。
 - 所有已实现效果的参数已接入光影设置界面，可在游戏内实时调节。
+
+## Visual Calibration（下一阶段）
+
+架构稳定化后，优先固定场景截图对比，而不是继续加功能：
+
+1. Forest Noon — 树冠块面、阴影深度、黄绿是否爆色  
+2. Forest Backlight — transmission / sparkle / bloom  
+3. Lake — 天空反射、sun ribbon、far palette、水面 bloom  
+4. Village — 屋顶亮面、墙体背光、shadow shape  
+5. Sunset — 是否全屏橙、阴影是否仍偏冷  
+6. Cave — block light、黑位  
+
+不做：新 GBuffer、真水深、feature bloom mask、Cloud/Godray/Grain 功能扩展。
 
 ## 工具
 

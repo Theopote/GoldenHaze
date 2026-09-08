@@ -84,7 +84,7 @@ void writeSpiderEyesGbuffer(vec3 albedo, float alpha, vec3 viewNormal,
     glow *= 1.35;
 
     gl_FragData[0] = vec4(glow, alpha);
-    gl_FragData[1] = packGBuffer(viewNormal, MAT_ENTITY);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_EMISSIVE);
 }
 
 void writeArmorGlintGbuffer(vec3 albedo, float alpha, vec3 viewNormal,
@@ -103,7 +103,8 @@ void writeArmorGlintGbuffer(vec3 albedo, float alpha, vec3 viewNormal,
     litColor = mix(litColor, glint, 0.55);
 
     gl_FragData[0] = vec4(litColor, alpha);
-    gl_FragData[1] = packGBuffer(viewNormal, MAT_ENTITY);
+    // Enchantment sheen is intentionally emissive for bloom.
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_EMISSIVE);
 }
 
 void writeLightningGbuffer(vec3 albedo, float alpha, vec3 viewNormal, vec3 sunDir) {
@@ -113,5 +114,5 @@ void writeLightningGbuffer(vec3 albedo, float alpha, vec3 viewNormal, vec3 sunDi
     bolt *= 1.8;
 
     gl_FragData[0] = vec4(bolt, alpha);
-    gl_FragData[1] = packGBuffer(viewNormal, MAT_ENTITY);
+    gl_FragData[1] = packGBuffer(viewNormal, MAT_EMISSIVE);
 }

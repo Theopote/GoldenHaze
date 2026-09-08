@@ -6,14 +6,11 @@
  *
  * Distortion contract (must stay identical on write + sample):
  *   shadow.vsh / shadow_*.vsh  → gl_Position.xyz = distortShadowClipPos(...)
- *   softShadowVisibility       → distort the lookup clip pos the same way
+ *   softShadowVisibility       → same distort via ghShadowClipPos()
  *   z *= 0.5 extends usable depth when the sun is low (Iris tutorial idiom)
  *
  * Filtering: nearest shadowtex0 + 3x3 box PCF. Do not switch to hardware
  * shadow samplers / PCSS without a deliberate style pass.
- *
- * Avoid identifiers named exactly "tint" (Iris Sodium injects a varying
- * with that name) and avoid parameter names that match function names.
  */
 
 #ifndef GOLDENHAZE_SHADOW
@@ -23,7 +20,6 @@ const int   shadowMapResolution      = 1024;
 const float shadowDistanceRenderMul  = 1.0;
 const bool  shadowtex0Nearest        = true;
 const bool  shadowtex0Mipmaps        = false;
-// Shared with distortShadowClipPos — change only here.
 const float SHADOW_DISTORT_Z_SCALE   = 0.5;
 const float SHADOW_DISTORT_FACTOR    = 0.10;
 
@@ -38,11 +34,16 @@ vec3 distortShadowClipPos(vec3 clipPos) {
     return clipPos;
 }
 
-vec3 ghToShadowScreen(vec3 feetPlayerPos, float bias) {
+// Single transform path: feet-player → biased, distorted shadow clip.
+vec4 ghShadowClipPos(vec3 feetPlayerPos, float bias) {
     vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
     vec4 clipPos = shadowProjection * vec4(shadowViewPos, 1.0);
     clipPos.z   -= bias;
     clipPos.xyz  = distortShadowClipPos(clipPos.xyz);
+    return clipPos;
+}
+
+vec3 ghShadowScreenPos(vec4 clipPos) {
     return clipPos.xyz / clipPos.w * 0.5 + 0.5;
 }
 
@@ -57,10 +58,7 @@ float ghSampleShadowMap(vec3 screenPos) {
 }
 
 float softShadowVisibility(vec3 feetPlayerPos, float bias, float radius) {
-    vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
-    vec4 baseClip = shadowProjection * vec4(shadowViewPos, 1.0);
-    baseClip.z   -= bias;
-    baseClip.xyz  = distortShadowClipPos(baseClip.xyz);
+    vec4 baseClip = ghShadowClipPos(feetPlayerPos, bias);
 
     float accum = 0.0;
     const int halfRange = 1;
@@ -70,8 +68,7 @@ float softShadowVisibility(vec3 feetPlayerPos, float bias, float radius) {
         for (int y = -halfRange; y <= halfRange; y++) {
             vec2 offset = vec2(float(x), float(y)) * radius * invRes;
             vec4 clipPos = baseClip + vec4(offset * baseClip.w, 0.0, 0.0);
-            vec3 screenPos = clipPos.xyz / clipPos.w * 0.5 + 0.5;
-            accum += ghSampleShadowMap(screenPos);
+            accum += ghSampleShadowMap(ghShadowScreenPos(clipPos));
         }
     }
 

@@ -154,7 +154,11 @@ vec3 applyWaterShading(vec3 albedo, vec3 painterlyLit, vec3 worldPos,
                                             rainStrength, distNear, distFar,
                                             waterStrength);
 
-    vec3 tintRatio = paletteAlbedo / max(albedo, vec3(0.001));
+    vec3 tintRatio = clamp(
+        paletteAlbedo / max(albedo, vec3(0.02)),
+        vec3(0.25),
+        vec3(2.0)
+    );
     vec3 lit = painterlyLit * tintRatio;
 
     lit = waterStylizedHighlights(lit, worldPos, viewNormal, worldNormal, viewDir,

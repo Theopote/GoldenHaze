@@ -40,6 +40,7 @@ vec3 materialAlbedoTint(float materialId) {
     if (abs(materialId - MAT_GLASS)   < 0.5) return vec3(0.88, 0.96, 1.04);
     if (abs(materialId - MAT_WATER)   < 0.5) return vec3(0.82, 0.98, 1.02);
     if (abs(materialId - MAT_ENTITY)  < 0.5) return vec3(1.02, 0.96, 0.90);
+    if (abs(materialId - MAT_EMISSIVE) < 0.5) return vec3(1.08, 1.02, 1.12);
     return vec3(1.00);
 }
 
@@ -90,6 +91,10 @@ void materialPaletteBands(float materialId, out vec3 toneLo,
         toneLo = vec3(0.34, 0.36, 0.48);
         toneMd = vec3(0.76, 0.72, 0.66);
         toneHi = vec3(1.08, 0.94, 0.70);
+    } else if (abs(materialId - MAT_EMISSIVE) < 0.5) {
+        toneLo = vec3(0.55, 0.48, 0.72);
+        toneMd = vec3(0.95, 0.88, 1.05);
+        toneHi = vec3(1.25, 1.15, 1.35);
     }
 }
 

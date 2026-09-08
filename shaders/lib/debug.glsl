@@ -4,7 +4,7 @@
  * DEBUG_VIEW in final.fsh:
  *   0 = final image
  *   1 = GBuffer normals (decoded, remapped to [0,1])
- *   2 = depth
+ *   2 = depth (linearized / 160 blocks)
  *   3 = material ID
  *   4 = NdotL (sun-facing)
  *   5 = Sky Proxy   — NOT real lightmap.y (final has no lmcoord;
@@ -33,6 +33,7 @@ vec3 debugMaterialColor(float materialId) {
     if (abs(materialId - MAT_TERRACOTTA) < 0.5) return vec3(0.92, 0.42, 0.28);
     if (abs(materialId - MAT_GLASS)   < 0.5)    return vec3(0.55, 0.85, 0.95);
     if (abs(materialId - MAT_ENTITY)  < 0.5)    return vec3(1.00, 0.55, 0.75);
+    if (abs(materialId - MAT_EMISSIVE) < 0.5)   return vec3(1.00, 0.95, 0.25);
     return vec3(0.70);
 }
 
@@ -62,7 +63,9 @@ vec3 applyDebugView(int mode, vec3 scene, vec4 gbuffer, float depth,
         return decodeNormal(gbuffer.rgb) * 0.5 + 0.5;
     }
     if (mode == 2) {
-        return vec3(depth);
+        // Linear depth viz — raw hyperbolic depth is useless (near-white).
+        float depthViz = clamp(linearZ / 160.0, 0.0, 1.0);
+        return vec3(depthViz);
     }
     if (mode == 3) {
         float matId = readMaterialId(gbuffer);

@@ -23,6 +23,7 @@
 #define MAT_ENTITY     9.0
 #define MAT_TERRACOTTA 10.0
 #define MAT_GLASS      11.0
+#define MAT_EMISSIVE   12.0
 
 vec3 encodeNormal(vec3 n) {
     return normalize(n) * 0.5 + 0.5;
