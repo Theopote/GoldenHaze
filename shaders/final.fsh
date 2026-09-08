@@ -5,22 +5,16 @@
  * 2. Split-tones the image: shadows nudged cool/violet, highlights
  *    nudged warm/gold — the classic hand-painted-animation trick that
  *    makes flat lighting read as "warm sunlight" instead of just bright.
- * 3. Soft vignette + light grain to fake a painted-canvas feel.
- *
- * TODO for you / Cursor:
- *   - Custom sky gradient (multi-stop, painterly clouds) — skybasic
- *     now has a basic gradient; clouds are still missing.
- *   - Foliage/water shimmer — a subtle moving specular highlight tied
- *     to `frameTimeCounter`, sampled in gbuffers_terrain/water.
+ * 3. Soft vignette + fixed screen-space paper grain (very subtle).
  */
 #version 120
 
 #define BLOOM_STRENGTH     0.8  // [0.00 0.20 0.40 0.60 0.80 1.00 1.30 1.60]
-#define GODRAY_STRENGTH    0.9  // [0.00 0.30 0.60 0.90 1.20 1.60 2.00]
+#define GODRAY_STRENGTH    0.45 // [0.00 0.30 0.45 0.60 0.90 1.20 1.60 2.00]
 #define WARMTH             1.0  // [0.00 0.30 0.60 1.00 1.40 1.80]
 #define VIGNETTE_STRENGTH  0.6  // [0.00 0.20 0.40 0.60 0.80 1.00]
-#define GRAIN_STRENGTH     1.0  // [0.00 0.30 0.60 1.00 1.50]
-#define CHROMA_STRENGTH    0.6  // [0.00 0.30 0.60 1.00 1.50]
+#define GRAIN_STRENGTH     0.35 // [0.00 0.30 0.35 0.60 1.00 1.50]
+#define CHROMA_STRENGTH    0.0  // [0.00 0.30 0.60 1.00 1.50] optional cinematic
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
@@ -29,7 +23,6 @@ uniform sampler2D canvas;    // custom paper grain, bound via
                              // texture.canvas in shaders.properties
 uniform float viewWidth;
 uniform float viewHeight;
-uniform float frameTimeCounter;
 
 varying vec2 texcoord;
 
@@ -59,9 +52,9 @@ vec3 softCurve(vec3 x) {
 }
 
 void main() {
-    // slight chromatic aberration: RGB channels sampled a hair apart
-    // radially from screen center, like paint pigment bleeding at the
-    // edges of strokes. Strength scales with distance from center.
+    // optional chromatic aberration (default off): radial RGB offset
+    // reads as lens dispersion, not hand-painted — keep at 0 unless
+    // you want a deliberate cinematic look
     vec2 fromCenter = texcoord - 0.5;
     vec2 caOffset = fromCenter * (CHROMA_STRENGTH * 0.0015)
                   * dot(fromCenter, fromCenter) * 4.0;
@@ -82,13 +75,11 @@ void main() {
     float vignette = 1.0 - dot(uv, uv) * VIGNETTE_STRENGTH;
     color *= vignette;
 
-    // canvas grain: real paper tooth texture instead of hash noise.
-    // Sampled in screen space at 1:1-ish texel scale, two octaves,
-    // slowly scrolled so the grain feels alive rather than printed on.
-    vec2 res    = vec2(viewWidth, viewHeight);
-    vec2 drift  = vec2(frameTimeCounter * 0.0013, frameTimeCounter * 0.0007);
-    float g1 = texture2D(canvas, texcoord * res / 256.0 + drift).r;
-    float g2 = texture2D(canvas, texcoord * res / 512.0 - drift * 0.6).r;
+    // paper grain: fixed screen-space canvas texture, two octaves.
+    // Does not scroll — drifting grain reads as film noise, not paper.
+    vec2 res = vec2(viewWidth, viewHeight);
+    float g1 = texture2D(canvas, texcoord * res / 256.0).r;
+    float g2 = texture2D(canvas, texcoord * res / 512.0).r;
     float grain = (g1 * 0.65 + g2 * 0.35) - 0.5;
     // stronger in midtones/shadows, barely visible in highlights —
     // like pigment sitting in the tooth of the paper
