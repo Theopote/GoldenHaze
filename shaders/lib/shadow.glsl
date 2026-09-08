@@ -1,8 +1,12 @@
 /*
  * GoldenHaze — stylized shadow mapping (Phase 2.3)
  *
- * Soft, low-frequency sun shadows with cool tinting. Focus is shadow
+ * Soft, low-frequency sun occlusion with cool shading. Focus is
  * shape and broad penumbra, not PCSS realism.
+ *
+ * Note: avoid identifiers named exactly "tint" (Iris Sodium injects
+ * a varying with that name) and avoid parameter names that match
+ * function names (breaks some Iris glsl-transformer paths).
  */
 
 #ifndef GOLDENHAZE_SHADOW
@@ -17,33 +21,31 @@ uniform sampler2D shadowtex0;
 uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
 
-// Distort clip-space XY so nearby texels get more shadow-map resolution.
-vec3 distortShadowClipPos(vec3 shadowClipPos) {
-    float distortion = length(shadowClipPos.xy) + 0.10;
-    shadowClipPos.xy /= distortion;
-    shadowClipPos.z  *= 0.5;
-    return shadowClipPos;
+vec3 distortShadowClipPos(vec3 clipPos) {
+    float distortion = length(clipPos.xy) + 0.10;
+    clipPos.xy /= distortion;
+    clipPos.z  *= 0.5;
+    return clipPos;
 }
 
-vec3 shadowScreenPos(vec3 feetPlayerPos, float bias) {
+vec3 ghToShadowScreen(vec3 feetPlayerPos, float bias) {
     vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
-    vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
-    shadowClipPos.z   -= bias;
-    shadowClipPos.xyz  = distortShadowClipPos(shadowClipPos.xyz);
-    return shadowClipPos.xyz / shadowClipPos.w * 0.5 + 0.5;
+    vec4 clipPos = shadowProjection * vec4(shadowViewPos, 1.0);
+    clipPos.z   -= bias;
+    clipPos.xyz  = distortShadowClipPos(clipPos.xyz);
+    return clipPos.xyz / clipPos.w * 0.5 + 0.5;
 }
 
-float shadowMapSample(vec3 shadowScreenPos) {
-    if (shadowScreenPos.x < 0.0 || shadowScreenPos.x > 1.0 ||
-        shadowScreenPos.y < 0.0 || shadowScreenPos.y > 1.0 ||
-        shadowScreenPos.z < 0.0 || shadowScreenPos.z > 1.0) {
+float ghSampleShadowMap(vec3 screenPos) {
+    if (screenPos.x < 0.0 || screenPos.x > 1.0 ||
+        screenPos.y < 0.0 || screenPos.y > 1.0 ||
+        screenPos.z < 0.0 || screenPos.z > 1.0) {
         return 1.0;
     }
-    float mapDepth = texture2D(shadowtex0, shadowScreenPos.xy).r;
-    return step(shadowScreenPos.z, mapDepth);
+    float mapDepth = texture2D(shadowtex0, screenPos.xy).r;
+    return step(screenPos.z, mapDepth);
 }
 
-// Wide box-filter PCF — chunky soft edges suited to painted shadows.
 float softShadowVisibility(vec3 feetPlayerPos, float bias, float radius) {
     vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
     vec4 baseClip = shadowProjection * vec4(shadowViewPos, 1.0);
@@ -59,7 +61,7 @@ float softShadowVisibility(vec3 feetPlayerPos, float bias, float radius) {
             vec2 offset = vec2(float(x), float(y)) * radius * invRes;
             vec4 clipPos = baseClip + vec4(offset * baseClip.w, 0.0, 0.0);
             vec3 screenPos = clipPos.xyz / clipPos.w * 0.5 + 0.5;
-            accum += shadowMapSample(screenPos);
+            accum += ghSampleShadowMap(screenPos);
         }
     }
 
@@ -67,25 +69,23 @@ float softShadowVisibility(vec3 feetPlayerPos, float bias, float radius) {
     return accum / samples;
 }
 
-// Sun shadow factor in [0,1]: 1 = fully lit, 0 = fully shadowed.
-float stylizedSunShadow(vec3 feetPlayerPos, vec3 normal, vec3 sunDir,
-                        float skyVis, float strength, float softness) {
+// Sun occlusion factor in [0,1]: 1 = fully lit, 0 = fully occluded.
+float ghMapSunLit(vec3 feetPlayerPos, vec3 normal, vec3 lightDir,
+                  float skyVis, float strength, float softness) {
     if (skyVis < 0.01 || strength < 0.001) {
         return 1.0;
     }
 
-    // Bias scales with surface slope relative to sun — reduces acne on shallow faces.
-    float NdotL = max(dot(normalize(normal), normalize(sunDir)), 0.0);
+    float NdotL = max(dot(normalize(normal), normalize(lightDir)), 0.0);
     float bias  = 0.0006 + (1.0 - NdotL) * 0.0018;
 
     float lit = softShadowVisibility(feetPlayerPos, bias, softness);
     return mix(1.0, lit, strength * skyVis);
 }
 
-// Cool violet-blue tint multiplied into shadowed sun light.
-vec3 stylizedShadowTint(float shadowVis) {
-    vec3 coolShadow = vec3(0.58, 0.60, 0.82);
-    return mix(coolShadow, vec3(1.0), shadowVis);
+vec3 ghShadeMul(float litVis) {
+    vec3 coolShade = vec3(0.58, 0.60, 0.82);
+    return mix(coolShade, vec3(1.0), litVis);
 }
 
 #endif

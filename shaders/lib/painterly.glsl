@@ -2,10 +2,13 @@
  * GoldenHaze — painterly lighting model (Phase 2.2 + three-light)
  *
  * Sun  — warm directional bands (wide smoothsteps, not hard toon)
- * Sky  — cool hemisphere fill for shadow sides
+ * Sky  — cool hemisphere fill for occluded sides
  * Bounce — subtle ground-tinted underside (artistic cheat, not GI)
  *
- * Phase 2.3 adds stylized sun shadow map on outdoor surfaces.
+ * Phase 2.3 adds stylized sun occlusion map on outdoor surfaces.
+ *
+ * Avoid local/global identifiers named "tint" — Iris Sodium injects
+ * a varying of that name into terrain fragment shaders.
  */
 
 #ifndef GOLDENHAZE_PAINTERLY
@@ -27,30 +30,29 @@ void lightmapVisibility(vec2 lmcoord, out float skyVis, out float blockVis) {
     blockVis = smoothstep(0.02, 0.20, lmcoord.x);
 }
 
-void painterlyBandColors(float materialId, out vec3 bandShadow,
-                         out vec3 bandMid, out vec3 bandSun) {
-    materialPaletteBands(materialId, bandShadow, bandMid, bandSun);
+void painterlyBandColors(float materialId, out vec3 toneLo,
+                         out vec3 toneMd, out vec3 toneHi) {
+    materialPaletteBands(materialId, toneLo, toneMd, toneHi);
 }
 
-// Time-of-day sun tint: pale morning → cream noon → golden afternoon → orange sunset.
-vec3 painterlySunTint(vec3 sunDir) {
-    float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
+// Time-of-day sun color: pale morning, cream noon, orange dusk.
+vec3 painterlySunPhase(vec3 lightDir) {
+    float sunUp = clamp(normalize(lightDir).y, -1.0, 1.0);
     float morning = smoothstep(-0.05, 0.30, sunUp)
                   * (1.0 - smoothstep(0.30, 0.62, sunUp));
-    float noon    = smoothstep(0.22, 0.72, sunUp);
-    float sunset  = (1.0 - abs(sunUp)) * smoothstep(-0.35, 0.05, sunUp);
+    float noonAmt = smoothstep(0.22, 0.72, sunUp);
+    float duskAmt = (1.0 - abs(sunUp)) * smoothstep(-0.35, 0.05, sunUp);
 
-    vec3 morningCol = vec3(1.02, 0.98, 0.72);
-    vec3 noonCol    = vec3(1.06, 1.02, 0.88);
-    vec3 sunsetCol  = vec3(1.12, 0.72, 0.42);
+    vec3 morningRgb = vec3(1.02, 0.98, 0.72);
+    vec3 noonRgb    = vec3(1.06, 1.02, 0.88);
+    vec3 duskRgb    = vec3(1.12, 0.72, 0.42);
 
-    vec3 tint = mix(vec3(1.0), noonCol, noon);
-    tint = mix(tint, morningCol, morning * 0.85);
-    tint = mix(tint, sunsetCol, sunset * 0.90);
-    return tint;
+    vec3 phaseRgb = mix(vec3(1.0), noonRgb, noonAmt);
+    phaseRgb = mix(phaseRgb, morningRgb, morning * 0.85);
+    phaseRgb = mix(phaseRgb, duskRgb, duskAmt * 0.90);
+    return phaseRgb;
 }
 
-// Cool sky hemisphere — fills shadow sides with blue-gray instead of black.
 vec3 painterlySkyFill(vec3 worldNormal, float skyVis) {
     float up = worldNormal.y * 0.5 + 0.5;
     vec3 coolSky  = vec3(0.46, 0.56, 0.72);
@@ -58,8 +60,7 @@ vec3 painterlySkyFill(vec3 worldNormal, float skyVis) {
     return mix(blueGray, coolSky, up) * skyVis;
 }
 
-// Ground-facing bounce tint — material-aware artistic fill, not real GI.
-vec3 painterlyBounceFill(vec3 worldNormal, float materialId, vec3 sunDir,
+vec3 painterlyBounceFill(vec3 worldNormal, float materialId, vec3 lightDir,
                          float skyVis) {
     float groundFacing = clamp(-worldNormal.y, 0.0, 1.0);
     if (groundFacing < 0.001 || skyVis < 0.01) {
@@ -73,32 +74,32 @@ vec3 painterlyBounceFill(vec3 worldNormal, float materialId, vec3 sunDir,
     else if (abs(materialId - MAT_WOOD) < 0.5)   bounce = vec3(0.48, 0.36, 0.24);
     else if (abs(materialId - MAT_TERRACOTTA) < 0.5) bounce = vec3(0.58, 0.36, 0.24);
 
-    float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
-    float sunset = (1.0 - abs(sunUp)) * smoothstep(-0.35, 0.05, sunUp);
-    bounce = mix(bounce, vec3(0.62, 0.38, 0.22), sunset * 0.65);
+    float sunUp = clamp(normalize(lightDir).y, -1.0, 1.0);
+    float duskAmt = (1.0 - abs(sunUp)) * smoothstep(-0.35, 0.05, sunUp);
+    bounce = mix(bounce, vec3(0.62, 0.38, 0.22), duskAmt * 0.65);
 
     return bounce * groundFacing * skyVis;
 }
 
-vec3 painterlyDirectionalLight(vec3 normal, vec3 sunDir, float materialId,
-                               float skyVis, float sunShadow) {
-    float NdotL = dot(normalize(normal), normalize(sunDir));
+vec3 painterlyDirectionalLight(vec3 normal, vec3 lightDir, float materialId,
+                               float skyVis, float sunLit) {
+    float NdotL = dot(normalize(normal), normalize(lightDir));
 
-    vec3 bandShadow, bandMid, bandSun;
-    painterlyBandColors(materialId, bandShadow, bandMid, bandSun);
+    vec3 toneLo, toneMd, toneHi;
+    painterlyBandColors(materialId, toneLo, toneMd, toneHi);
 
     float litBand = painterlyStep(-0.18, 0.22, NdotL);
     float sunBand = painterlyStep(0.18, 0.58, NdotL);
 
-    vec3 lightColor = mix(bandShadow, bandMid, litBand);
-    lightColor = mix(lightColor, bandSun, sunBand);
+    vec3 lightColor = mix(toneLo, toneMd, litBand);
+    lightColor = mix(lightColor, toneHi, sunBand);
 
     lightColor *= skyVis;
-    lightColor *= painterlySunTint(sunDir);
+    lightColor *= painterlySunPhase(lightDir);
 
-    float shadowMul = mix(0.32, 1.0, sunShadow);
-    lightColor *= shadowMul;
-    lightColor *= mix(stylizedShadowTint(sunShadow), vec3(1.0), sunShadow);
+    float shadeMul = mix(0.32, 1.0, sunLit);
+    lightColor *= shadeMul;
+    lightColor *= mix(ghShadeMul(sunLit), vec3(1.0), sunLit);
 
     return lightColor;
 }
@@ -110,20 +111,20 @@ vec3 painterlyAmbientFill(float skyVis, float blockVis, vec3 vanillaLight) {
     return caveFill + torchFill + vanillaHint;
 }
 
-vec3 shadePainterly(vec3 albedo, vec3 normal, vec3 worldNormal, vec3 sunDir,
+vec3 shadePainterly(vec3 albedo, vec3 normal, vec3 worldNormal, vec3 lightDir,
                     vec2 lmcoord, vec3 vanillaLight, float materialId,
                     float rainStrength, float strength, vec3 feetPlayerPos,
                     float shadowStrength, float shadowSoftness) {
     float skyVis, blockVis;
     lightmapVisibility(lmcoord, skyVis, blockVis);
 
-    float sunShadow = stylizedSunShadow(feetPlayerPos, normal, sunDir, skyVis,
-                                        shadowStrength, shadowSoftness);
+    float sunLit = ghMapSunLit(feetPlayerPos, normal, lightDir, skyVis,
+                               shadowStrength, shadowSoftness);
 
-    vec3 sunLight  = painterlyDirectionalLight(normal, sunDir, materialId,
-                                               skyVis, sunShadow) * SUN_STRENGTH;
+    vec3 sunLight  = painterlyDirectionalLight(normal, lightDir, materialId,
+                                               skyVis, sunLit) * SUN_STRENGTH;
     vec3 skyLight  = painterlySkyFill(worldNormal, skyVis) * SKY_STRENGTH;
-    vec3 bounce    = painterlyBounceFill(worldNormal, materialId, sunDir, skyVis)
+    vec3 bounce    = painterlyBounceFill(worldNormal, materialId, lightDir, skyVis)
                    * BOUNCE_STRENGTH;
     vec3 ambient   = painterlyAmbientFill(skyVis, blockVis, vanillaLight)
                    + skyLight + bounce;

@@ -42,11 +42,11 @@ vec3 foliageVerticalPalette(vec3 albedo, vec3 worldPos, vec3 worldNormal,
 
     float heightBand = sin(worldPos.y * 0.11) * 0.5 + 0.5;
 
-    vec3 tint = midTint;
-    tint = mix(tint, topTint,    topFace * 0.85 + heightBand * 0.15);
-    tint = mix(tint, bottomTint, bottomFace * 0.80);
+    vec3 leafMul = midTint;
+    leafMul = mix(leafMul, topTint,    topFace * 0.85 + heightBand * 0.15);
+    leafMul = mix(leafMul, bottomTint, bottomFace * 0.80);
 
-    return albedo * mix(vec3(1.0), tint, skyVis);
+    return albedo * mix(vec3(1.0), leafMul, skyVis);
 }
 
 // Sun-facing warm yellow-green vs back-facing blue-green.

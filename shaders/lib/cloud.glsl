@@ -74,9 +74,9 @@ vec3 shadeStylizedCloud(vec3 sky, vec2 cp, vec3 sunPosition, vec3 dir,
     float rim   = clamp((density - densitySun) * 4.2, 0.0, 1.0);
     float thick = smoothstep(0.15, 0.88, cover);
 
-    vec3 cloudShadow = mix(vec3(0.06, 0.06, 0.13),
+    vec3 cloudShade = mix(vec3(0.06, 0.06, 0.13),
                            vec3(0.45, 0.47, 0.62), day);
-    cloudShadow = mix(cloudShadow, vec3(0.45, 0.30, 0.42), sunset * 0.6);
+    cloudShade = mix(cloudShade, vec3(0.45, 0.30, 0.42), sunset * 0.6);
 
     vec3 cloudLit = mix(vec3(0.07, 0.07, 0.14),
                         vec3(1.10, 1.02, 0.90), day);
@@ -84,15 +84,15 @@ vec3 shadeStylizedCloud(vec3 sky, vec2 cp, vec3 sunPosition, vec3 dir,
 
     float litFactor = clamp(0.32 + rim * 1.15 * max(day, sunset)
                             - thick * 0.48 + 0.22, 0.0, 1.0);
-    vec3 cloudCol = mix(cloudShadow, cloudLit, litFactor);
+    vec3 cloudRgb = mix(cloudShade, cloudLit, litFactor);
 
     vec3 sunsetHorizon = vec3(1.00, 0.45, 0.20);
-    cloudCol = mix(cloudCol, sunsetHorizon * 1.1,
+    cloudRgb = mix(cloudRgb, sunsetHorizon * 1.1,
                    (1.0 - up) * (1.0 - thick) * 0.5 * max(day, sunset));
-    cloudCol = mix(cloudCol, vec3(dot(cloudCol, vec3(0.333))) * 0.5,
+    cloudRgb = mix(cloudRgb, vec3(dot(cloudRgb, vec3(0.333))) * 0.5,
                    rainStrength * 0.7);
 
-    return mix(sky, cloudCol, cover * 0.96);
+    return mix(sky, cloudRgb, cover * 0.96);
 }
 
 // Full cloud pass: returns sky with stylized clouds composited.

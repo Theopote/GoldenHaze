@@ -65,8 +65,8 @@ void main() {
             shafts *= GODRAY_EXPOSURE / GODRAY_SAMPLES_F;
 
             float lowSun = 1.0 - smoothstep(0.0, 0.55, sunUp);
-            vec3 tint = mix(vec3(1.00, 0.80, 0.50), vec3(1.00, 0.60, 0.30), lowSun);
-            shafts *= tint;
+            vec3 shaftMul = mix(vec3(1.00, 0.80, 0.50), vec3(1.00, 0.60, 0.30), lowSun);
+            shafts *= shaftMul;
 
             shafts *= smoothstep(-0.08, 0.06, sunUp);
             shafts *= 1.0 - rainStrength;

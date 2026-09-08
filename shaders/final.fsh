@@ -47,11 +47,11 @@ uniform float viewHeight;
 varying vec2 texcoord;
 
 vec3 warmGrade(vec3 color) {
-    vec3 shadowTint    = vec3(0.05, 0.03, 0.08) * WARMTH;
-    vec3 highlightTint = vec3(0.12, 0.07, -0.02) * WARMTH;
+    vec3 shadeShift = vec3(0.05, 0.03, 0.08) * WARMTH;
+    vec3 highShift  = vec3(0.12, 0.07, -0.02) * WARMTH;
 
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
-    color += mix(shadowTint, highlightTint, smoothstep(0.2, 0.8, luma));
+    color += mix(shadeShift, highShift, smoothstep(0.2, 0.8, luma));
 
     color = mix(vec3(luma), color, 1.0 + 0.10 * WARMTH);
     return color;

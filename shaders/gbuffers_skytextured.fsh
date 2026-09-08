@@ -25,8 +25,8 @@ void main() {
     float sunUp = clamp(normalize(sunPosition).y, -1.0, 1.0);
     float day   = smoothstep(-0.10, 0.25, sunUp);
 
-    vec3 tint = mix(vec3(0.55, 0.60, 0.75), vec3(1.00, 0.85, 0.55), day);
-    vec3 color = albedo.rgb * tint;
+    vec3 dayMul = mix(vec3(0.55, 0.60, 0.75), vec3(1.00, 0.85, 0.55), day);
+    vec3 color = albedo.rgb * dayMul;
     color = mix(color, vec3(0.35), rainStrength * 0.6);
 
     // HDR headroom for bloom extract (was previously a separate buffer feed)

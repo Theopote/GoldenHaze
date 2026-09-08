@@ -21,28 +21,28 @@ float waterVnoise(vec2 p) {
 }
 
 void waterSkyPalette(vec3 sunDir, float rainStrength,
-                     out vec3 nearCol, out vec3 midCol,
-                     out vec3 farCol, out vec3 sunsetCol) {
+                     out vec3 waterNear, out vec3 waterMid,
+                     out vec3 waterFar, out vec3 waterSunset) {
     float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
     float day     = smoothstep(-0.10, 0.25, sunUp);
     float sunset  = (1.0 - abs(sunUp)) * smoothstep(-0.35, 0.05, sunUp);
 
-    nearCol   = vec3(0.22, 0.52, 0.58);
-    midCol    = vec3(0.18, 0.55, 0.48);
-    farCol    = mix(vec3(0.12, 0.18, 0.32), vec3(0.42, 0.66, 0.92), day);
-    sunsetCol = vec3(0.82, 0.48, 0.32);
+    waterNear   = vec3(0.22, 0.52, 0.58);
+    waterMid    = vec3(0.18, 0.55, 0.48);
+    waterFar    = mix(vec3(0.12, 0.18, 0.32), vec3(0.42, 0.66, 0.92), day);
+    waterSunset = vec3(0.82, 0.48, 0.32);
 
-    vec3 gray = vec3(dot(farCol, vec3(0.333))) * 0.7;
-    farCol = mix(farCol, gray, rainStrength * 0.55);
-    midCol = mix(midCol, gray, rainStrength * 0.40);
+    vec3 gray = vec3(dot(waterFar, vec3(0.333))) * 0.7;
+    waterFar = mix(waterFar, gray, rainStrength * 0.55);
+    waterMid = mix(waterMid, gray, rainStrength * 0.40);
 }
 
 // Layer 1 — base palette by distance and depth band.
 vec3 waterLayerBase(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
                     vec3 sunDir, float skyVis, float rainStrength,
                     float distNear, float distFar) {
-    vec3 nearCol, midCol, farCol, sunsetCol;
-    waterSkyPalette(sunDir, rainStrength, nearCol, midCol, farCol, sunsetCol);
+    vec3 waterNear, waterMid, waterFar, waterSunset;
+    waterSkyPalette(sunDir, rainStrength, waterNear, waterMid, waterFar, waterSunset);
 
     float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
     float sunset = (1.0 - abs(sunUp)) * smoothstep(-0.35, 0.05, sunUp);
@@ -51,10 +51,10 @@ vec3 waterLayerBase(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
     float farT  = smoothstep(distNear * 2.5, distFar, horizDist);
     float midT  = smoothstep(distNear, distNear * 4.0, horizDist) * (1.0 - farT);
 
-    vec3 palette = nearCol;
-    palette = mix(palette, midCol, midT);
-    palette = mix(palette, farCol, farT);
-    palette = mix(palette, sunsetCol, sunset * farT * 0.85);
+    vec3 palette = waterNear;
+    palette = mix(palette, waterMid, midT);
+    palette = mix(palette, waterFar, farT);
+    palette = mix(palette, waterSunset, sunset * farT * 0.85);
 
     float texRetain = mix(0.45, 0.05, farT);
     vec3 stylized = mix(palette, albedo * palette * 2.2, texRetain);
@@ -64,10 +64,10 @@ vec3 waterLayerBase(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
 }
 
 // Layer 2 — sky reflection via grazing view angle (stylized Fresnel).
-vec3 waterLayerSkyReflection(vec3 baseCol, vec3 normal, vec3 viewDir,
-                             vec3 farCol, float skyVis) {
+vec3 waterLayerSkyReflection(vec3 baseRgb, vec3 normal, vec3 viewDir,
+                             vec3 waterFar, float skyVis) {
     float fresnel = pow(1.0 - max(dot(normalize(normal), normalize(viewDir)), 0.0), 2.8);
-    return mix(baseCol, farCol * 1.08, fresnel * 0.55 * skyVis);
+    return mix(baseRgb, waterFar * 1.08, fresnel * 0.55 * skyVis);
 }
 
 // Layer 3 — horizontal sun ribbon bands (world up for horizontal water).
@@ -105,9 +105,9 @@ vec3 waterPaletteAlbedo(vec3 albedo, vec3 worldPos, vec3 feetPlayerPos,
     vec3 base = waterLayerBase(albedo, worldPos, feetPlayerPos, sunDir, skyVis,
                                rainStrength, distNear, distFar);
 
-    vec3 nearCol, midCol, farCol, sunsetCol;
-    waterSkyPalette(sunDir, rainStrength, nearCol, midCol, farCol, sunsetCol);
-    vec3 layered = waterLayerSkyReflection(base, normal, viewDir, farCol, skyVis);
+    vec3 waterNear, waterMid, waterFar, waterSunset;
+    waterSkyPalette(sunDir, rainStrength, waterNear, waterMid, waterFar, waterSunset);
+    vec3 layered = waterLayerSkyReflection(base, normal, viewDir, waterFar, skyVis);
 
     return mix(albedo, layered, strength);
 }

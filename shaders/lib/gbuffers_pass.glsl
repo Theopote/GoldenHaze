@@ -52,11 +52,11 @@ void writeWeatherGbuffer(vec3 albedo, float alpha, vec2 lmcoord, vec3 normal,
     float sunUp = clamp(normalize(sunDir).y, -1.0, 1.0);
     float day   = smoothstep(-0.10, 0.25, sunUp);
 
-    vec3 rainTint = mix(vec3(0.58, 0.70, 0.86), vec3(0.80, 0.86, 0.98), day);
-    vec3 snowTint = mix(vec3(0.72, 0.78, 0.90), vec3(0.94, 0.96, 1.02), day);
-    vec3 tint = mix(rainTint, snowTint, smoothstep(0.35, 0.75, albedo.r + albedo.b));
+    vec3 rainMul = mix(vec3(0.58, 0.70, 0.86), vec3(0.80, 0.86, 0.98), day);
+    vec3 snowMul = mix(vec3(0.72, 0.78, 0.90), vec3(0.94, 0.96, 1.02), day);
+    vec3 weatherMul = mix(rainMul, snowMul, smoothstep(0.35, 0.75, albedo.r + albedo.b));
 
-    vec3 base = mix(albedo, tint, 0.62);
+    vec3 base = mix(albedo, weatherMul, 0.62);
     vec3 skyFill = painterlySkyFill(worldNormal, skyVis) * SKY_STRENGTH;
     vec3 ambient = painterlyAmbientFill(skyVis, blockVis, vec3(0.5)) + skyFill;
     vec3 lit = base * ambient;

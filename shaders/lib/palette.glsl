@@ -40,52 +40,52 @@ vec3 materialAlbedoTint(float materialId) {
 }
 
 // Painterly lighting bands per material (shadow / mid / sun).
-void materialPaletteBands(float materialId, out vec3 bandShadow,
-                          out vec3 bandMid, out vec3 bandSun) {
-    bandShadow = vec3(0.40, 0.42, 0.56);
-    bandMid    = vec3(0.76, 0.74, 0.68);
-    bandSun    = vec3(1.06, 0.93, 0.66);
+void materialPaletteBands(float materialId, out vec3 toneLo,
+                          out vec3 toneMd, out vec3 toneHi) {
+    toneLo = vec3(0.40, 0.42, 0.56);
+    toneMd = vec3(0.76, 0.74, 0.68);
+    toneHi = vec3(1.06, 0.93, 0.66);
 
     if (abs(materialId - MAT_FOLIAGE) < 0.5) {
-        bandShadow = vec3(0.26, 0.40, 0.36);
-        bandMid    = vec3(0.62, 0.78, 0.42);
-        bandSun    = vec3(1.04, 0.96, 0.50);
+        toneLo = vec3(0.26, 0.40, 0.36);
+        toneMd = vec3(0.62, 0.78, 0.42);
+        toneHi = vec3(1.04, 0.96, 0.50);
     } else if (abs(materialId - MAT_GRASS) < 0.5) {
-        bandShadow = vec3(0.30, 0.44, 0.34);
-        bandMid    = vec3(0.66, 0.82, 0.44);
-        bandSun    = vec3(1.08, 1.00, 0.52);
+        toneLo = vec3(0.30, 0.44, 0.34);
+        toneMd = vec3(0.66, 0.82, 0.44);
+        toneHi = vec3(1.08, 1.00, 0.52);
     } else if (abs(materialId - MAT_WOOD) < 0.5) {
-        bandShadow = vec3(0.38, 0.32, 0.42);
-        bandMid    = vec3(0.78, 0.66, 0.52);
-        bandSun    = vec3(1.10, 0.88, 0.58);
+        toneLo = vec3(0.38, 0.32, 0.42);
+        toneMd = vec3(0.78, 0.66, 0.52);
+        toneHi = vec3(1.10, 0.88, 0.58);
     } else if (abs(materialId - MAT_STONE) < 0.5) {
-        bandShadow = vec3(0.34, 0.38, 0.50);
-        bandMid    = vec3(0.68, 0.70, 0.76);
-        bandSun    = vec3(0.98, 0.94, 0.86);
+        toneLo = vec3(0.34, 0.38, 0.50);
+        toneMd = vec3(0.68, 0.70, 0.76);
+        toneHi = vec3(0.98, 0.94, 0.86);
     } else if (abs(materialId - MAT_SOIL) < 0.5) {
-        bandShadow = vec3(0.42, 0.34, 0.30);
-        bandMid    = vec3(0.80, 0.68, 0.54);
-        bandSun    = vec3(1.08, 0.90, 0.62);
+        toneLo = vec3(0.42, 0.34, 0.30);
+        toneMd = vec3(0.80, 0.68, 0.54);
+        toneHi = vec3(1.08, 0.90, 0.62);
     } else if (abs(materialId - MAT_SNOW) < 0.5) {
-        bandShadow = vec3(0.52, 0.58, 0.72);
-        bandMid    = vec3(0.82, 0.86, 0.94);
-        bandSun    = vec3(1.12, 1.08, 1.02);
+        toneLo = vec3(0.52, 0.58, 0.72);
+        toneMd = vec3(0.82, 0.86, 0.94);
+        toneHi = vec3(1.12, 1.08, 1.02);
     } else if (abs(materialId - MAT_TERRACOTTA) < 0.5) {
-        bandShadow = vec3(0.42, 0.30, 0.26);
-        bandMid    = vec3(0.82, 0.58, 0.42);
-        bandSun    = vec3(1.10, 0.78, 0.52);
+        toneLo = vec3(0.42, 0.30, 0.26);
+        toneMd = vec3(0.82, 0.58, 0.42);
+        toneHi = vec3(1.10, 0.78, 0.52);
     } else if (abs(materialId - MAT_GLASS) < 0.5) {
-        bandShadow = vec3(0.38, 0.48, 0.58);
-        bandMid    = vec3(0.72, 0.82, 0.92);
-        bandSun    = vec3(1.04, 1.02, 0.98);
+        toneLo = vec3(0.38, 0.48, 0.58);
+        toneMd = vec3(0.72, 0.82, 0.92);
+        toneHi = vec3(1.04, 1.02, 0.98);
     } else if (abs(materialId - MAT_WATER) < 0.5) {
-        bandShadow = vec3(0.22, 0.42, 0.52);
-        bandMid    = vec3(0.48, 0.72, 0.78);
-        bandSun    = vec3(0.82, 0.96, 1.08);
+        toneLo = vec3(0.22, 0.42, 0.52);
+        toneMd = vec3(0.48, 0.72, 0.78);
+        toneHi = vec3(0.82, 0.96, 1.08);
     } else if (abs(materialId - MAT_ENTITY) < 0.5) {
-        bandShadow = vec3(0.34, 0.36, 0.48);
-        bandMid    = vec3(0.76, 0.72, 0.66);
-        bandSun    = vec3(1.08, 0.94, 0.70);
+        toneLo = vec3(0.34, 0.36, 0.48);
+        toneMd = vec3(0.76, 0.72, 0.66);
+        toneHi = vec3(1.08, 0.94, 0.70);
     }
 }
 
@@ -95,8 +95,8 @@ vec3 applyMaterialPalette(vec3 albedo, float materialId, float strength) {
         return albedo;
     }
 
-    vec3 tint = materialAlbedoTint(materialId);
-    vec3 paletted = albedo * tint;
+    vec3 albedoMul = materialAlbedoTint(materialId);
+    vec3 paletted = albedo * albedoMul;
 
     float luma = dot(albedo, vec3(0.299, 0.587, 0.114));
     paletted = mix(vec3(luma), paletted, 1.12);

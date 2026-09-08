@@ -37,12 +37,12 @@ void main() {
     vec3 nightZenith   = vec3(0.02, 0.03, 0.08);
     vec3 nightHorizon  = vec3(0.05, 0.05, 0.12);
 
-    vec3 zenithCol  = mix(nightZenith,  dayZenith,  day);
-    vec3 horizonCol = mix(nightHorizon, dayHorizon, day);
-    zenithCol  = mix(zenithCol,  sunsetZenith,  sunset * 0.7);
-    horizonCol = mix(horizonCol, sunsetHorizon, sunset);
+    vec3 zenithRgb  = mix(nightZenith,  dayZenith,  day);
+    vec3 horizonRgb = mix(nightHorizon, dayHorizon, day);
+    zenithRgb  = mix(zenithRgb,  sunsetZenith,  sunset * 0.7);
+    horizonRgb = mix(horizonRgb, sunsetHorizon, sunset);
 
-    vec3 sky = mix(zenithCol, horizonCol, horizon);
+    vec3 sky = mix(zenithRgb, horizonRgb, horizon);
     sky = mix(sky, vec3(dot(sky, vec3(0.333))) * 0.6, rainStrength * 0.7);
 
 #ifdef ENABLE_CLOUDS

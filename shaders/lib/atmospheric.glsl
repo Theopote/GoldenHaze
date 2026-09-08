@@ -33,11 +33,11 @@ vec3 atmosphericHorizonColor(vec3 sunPosition, float rainStrength) {
     vec3 sunsetHaze = vec3(0.82, 0.62, 0.52);
     vec3 nightHaze  = vec3(0.07, 0.09, 0.17);
 
-    vec3 hazeCol = mix(nightHaze, dayHaze, day);
-    hazeCol = mix(hazeCol, sunsetHaze, sunset * 0.75);
-    hazeCol = mix(hazeCol, vec3(dot(hazeCol, vec3(0.333))) * 0.65,
+    vec3 hazeRgb = mix(nightHaze, dayHaze, day);
+    hazeRgb = mix(hazeRgb, sunsetHaze, sunset * 0.75);
+    hazeRgb = mix(hazeRgb, vec3(dot(hazeRgb, vec3(0.333))) * 0.65,
                   rainStrength * 0.65);
-    return hazeCol;
+    return hazeRgb;
 }
 
 // Shift toward horizon color, pull saturation down, gently crush contrast.
