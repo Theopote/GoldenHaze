@@ -7,8 +7,8 @@
  * Phase 2.3 adds stylized sun shadow map modulation on outdoor surfaces.
  */
 
-#include "/lib/gbuffer.glsl"
 #include "/lib/shadow.glsl"
+#include "/lib/palette.glsl"
 
 float painterlyStep(float edge0, float edge1, float x) {
     return smoothstep(edge0, edge1, x);
@@ -21,19 +21,7 @@ void lightmapVisibility(vec2 lmcoord, out float skyVis, out float blockVis) {
 
 void painterlyBandColors(float materialId, out vec3 shadowCol,
                          out vec3 midCol, out vec3 sunCol) {
-    shadowCol = vec3(0.40, 0.42, 0.56);
-    midCol    = vec3(0.76, 0.74, 0.68);
-    sunCol    = vec3(1.06, 0.93, 0.66);
-
-    if (abs(materialId - MAT_FOLIAGE) < 0.5) {
-        shadowCol = vec3(0.26, 0.40, 0.36);
-        midCol    = vec3(0.62, 0.78, 0.42);
-        sunCol    = vec3(1.04, 0.96, 0.50);
-    } else if (abs(materialId - MAT_WATER) < 0.5) {
-        shadowCol = vec3(0.22, 0.42, 0.52);
-        midCol    = vec3(0.48, 0.72, 0.78);
-        sunCol    = vec3(0.82, 0.96, 1.08);
-    }
+    materialPaletteBands(materialId, shadowCol, midCol, sunCol);
 }
 
 vec3 painterlyDirectionalLight(vec3 normal, vec3 sunDir, float materialId,
@@ -55,11 +43,6 @@ vec3 painterlyDirectionalLight(vec3 normal, vec3 sunDir, float materialId,
     float shadowMul = mix(0.32, 1.0, sunShadow);
     lightColor *= shadowMul;
     lightColor *= mix(stylizedShadowTint(sunShadow), vec3(1.0), sunShadow);
-
-    if (abs(materialId - MAT_FOLIAGE) < 0.5) {
-        float rim = painterlyStep(0.10, 0.50, -NdotL) * skyVis;
-        lightColor += vec3(0.42, 0.52, 0.20) * rim * 0.50;
-    }
 
     return lightColor;
 }

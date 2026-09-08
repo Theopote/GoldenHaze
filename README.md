@@ -28,17 +28,17 @@ Iris 光影包。风格方向是温暖治愈系手绘动画光感——不追求
 | 模块 | 评分 | 说明 |
 |------|------|------|
 | 风格方向 | 8/10 | 暖光冷影、非写实 tonemap 思路正确 |
-| 天空 | 7/10 | 昼夜渐变 + 程序云 + 云亮/暗面分组，领先其他模块 |
+| 天空 | 7.5/10 | Cloud 2.0 分层形体云 + 渐变天空，FBM 已替换 |
 | 色彩 | 6.5/10 | split-toning 有效，但目前仅依据最终像素亮度 |
 | Bloom | 7/10 | 实现成熟，但权重偏高，易走向梦幻滤镜 |
 | 光束 | 6/10 | 径向散射可用，应降级为辅助效果 |
-| 水 | 5/10 | 青绿分块光照 + 闪光，待 palette 水体 2.0 |
-| 植被 | 5.5/10 | 树叶独立色板 + 逆光 rim，闪光已融入 |
+| 水 | 6.5/10 | Water 2.0：palette 水体、距离着色、横向高光带 |
+| 植被 | 7/10 | Foliage 2.0：树冠体积、垂直色阶、逆光 rim、集成闪光 |
 | 地形 | 5.5/10 | Painterly 宽色阶光照，仍依赖 lightmap 做洞穴/火把可见性 |
 | 形体塑造 | 5.5/10 | 法线分块 + 太阳投影构图，大块柔和阴影 |
 | 空气透视 | 5/10 | depthtex0 驱动：蓝移、去饱和、远景柔化（final.fsh） |
 | 阴影系统 | 5/10 | 2048 软阴影 + 冷色投影 tint，待 entities pass |
-| 材质统一性 | 3/10 | 各 pass 风格断裂（世界 vs 生物/手/天气） |
+| 材质统一性 | 8/10 | MAT_ENTITY 色板覆盖生物/方块实体/手/半透明层 |
 | 完整渲染管线 | 4/10 | GBuffer 2.0 已落地（normal + material），待接光照与 depth |
 
 ---
@@ -136,45 +136,74 @@ FINAL
 
 待办：`shadow_entities`、树叶半透明投影
 
-### 2.4 — Foliage Rendering 2.0（最大视觉杠杆）
+### 2.4 — Foliage Rendering 2.0 ✅（已完成）
 
-树是玩家最常看到的东西，应成为最重要的视觉模块：
+`lib/foliage.glsl`，在 `gbuffers_terrain` 对 `MAT_FOLIAGE` 后处理：
 
-- 树冠大块亮暗（world-space 大尺度噪声）
-- 垂直色阶：顶暖黄绿 → 中自然绿 → 底蓝绿/深绿
-- 向阳暖 tint / 背光青绿
-- 树冠内部阴影（canopy shadow）
-- 逆光边缘透光（rim translucency）
-- 现有 sparkle 融入 foliage shading，而非「原版树叶 + 闪光」
+- **树冠体积明暗** — world-space 大尺度噪声亮/暗团块
+- **垂直色阶** — 顶面暖黄绿、中间自然绿、底面蓝绿（法线 + 弱 world-Y）
+- **向阳 / 背光** — 暖黄绿 vs 青绿分色
+- **树冠内部阴影** — sky light 遮挡 + 密度噪声压暗
+- **逆光 rim 透光** — 背光边缘黄绿透光
+- **闪光** — 集成进 foliage pass，仅亮部树冠团块出现
+- 滑块：`FOLIAGE_STRENGTH`（可回混纯 painterly）
 
-### 2.5 — Water Rendering 2.0
+### 2.5 — Water Rendering 2.0 ✅（已完成）
 
-- 水体统一 palette（天空蓝 / 青绿 / 深蓝 / 夕阳橙）
-- 基于 depth 与视角的距离着色
-- 动画式高光：细长横向、断续高光带，替代随机噪声亮点
+`lib/water.glsl`，在 `gbuffers_water` 后处理：
 
-### 2.6 — Cloud 2.0
+- **统一 palette** — 近水青绿、中水青绿块、远水天空蓝、日落橙
+- **距离着色** — `feetPlayerPos` 水平距离 + Fresnel 掠射角混天空色
+- **动画高光** — 横向断续亮带（替代随机噪声闪光）
+- 洞穴/无天空光处保持暗水色
+- 滑块：`WATER_STRENGTH`、`WATER_DIST_NEAR`、`WATER_DIST_FAR`、`SHIMMER_STRENGTH`（高光带）
 
-从 FBM 主导转向 **Stylized Cloud Shape Model**：
+### 2.6 — Cloud 2.0 ✅（已完成）
 
-- Macro blob + secondary blobs + bottom clipping + sun-side expansion
-- 有限内部噪声（如 `macro 70% + medium 25% + detail 5%`）
-- 强调 silhouette、mass、hard/soft edge hierarchy
+`lib/cloud.glsl`，替换 `gbuffers_skybasic` 中的 5-octave FBM：
 
-### 2.7 — 统一材质 palette
+- **分层形体** — macro 70% + medium 25% + detail 5%
+- **大轮廓** — `smoothstep` 离散团块，干净天空间隙
+- **底部裁切** — 大尺度 base height，cumulus 平底
+- **向阳扩展** — 太阳方向偏移采样，金边 rim
+- **边缘层级** — 硬 silhouette + 软内部 mass
+- 保留昼夜/日落云调色与 `CLOUD_COVERAGE` 滑块
 
-grass / leaves / wood / stone / soil / water / snow 各有一套
-动画背景式的色板，而非仅靠后期调色统一。
+### 2.7 — 统一材质 palette ✅（已完成）
 
-### 2.8 — 补全缺失 pass
+`lib/palette.glsl` + 扩展 `block.properties`：
 
-消除风格断裂（以 Iris 当前 pipeline 支持为准）：
+| block ID | 材质 | 色板特征 |
+|----------|------|----------|
+| 1 | 树叶 | 黄绿 / 蓝绿光影（+ Foliage 2.0） |
+| 2 | 草 | 暖黄绿 |
+| 3 | 木材 | 暖琥珀 / 紫褐阴影 |
+| 4 | 石材 | 冷灰蓝 / 奶油高光 |
+| 5 | 土壤 | 暖赭 / 红褐 |
+| 6 | 雪 | 冷蓝阴影 / 明亮高光 |
+| — | 水 | `lib/water.glsl`（gbuffers_water） |
 
-- `gbuffers_entities`
-- `gbuffers_hand`
-- `gbuffers_textured` / `gbuffers_textured_lit`
-- `gbuffers_weather`
-- `gbuffers_particles`
+- `applyMaterialPalette()` — 光照前 albedo 色偏
+- `materialPaletteBands()` — painterly 光影色阶统一来源
+- 滑块：`PALETTE_STRENGTH`
+
+### 2.8 — 补全 entities 相关 pass ✅
+
+**`MAT_ENTITY` 专用色板**（暖色动画角色调）+ 完整 pass 覆盖：
+
+| Pass | 内容 |
+|------|------|
+| `gbuffers_entities` | 不透明生物 |
+| `gbuffers_entities_translucent` | 史莱姆等半透明生物 |
+| `gbuffers_block` / `block_translucent` | 箱子、告示牌等方块实体 |
+| `gbuffers_hand` / `hand_water` | 手部与手持透明物 |
+| `gbuffers_spidereyes` | 蜘蛛/末影人/龙眼发光 |
+| `gbuffers_armor_glint` | 附魔金色闪光 |
+| `gbuffers_lightning` | 闪电与龙息光束 |
+| `gbuffers_particles_translucent` | 半透明粒子 |
+| `shadow_entities` | 生物投影 |
+
+共享实现：`lib/gbuffers_pass.glsl`（`writeEntityGbuffer` 等）
 
 ### 2.9 — 后期参数重调（最后 10%）
 
@@ -196,12 +225,32 @@ GoldenHaze/
    ├─ shaders.properties           # 缓冲区配置 + 可调选项
    ├─ lib/gbuffer.glsl            # GBuffer 编码：法线 + 材质 ID
    ├─ lib/painterly.glsl          # 宽色阶手绘光照模型
+   ├─ lib/foliage.glsl            # 树冠体积着色（Foliage 2.0）
+   ├─ lib/water.glsl              # 风格化水体（Water 2.0）
+   ├─ lib/palette.glsl             # 统一材质色板（Phase 2.7）
+   ├─ lib/cloud.glsl              # 分层形体云（Cloud 2.0）
    ├─ lib/atmospheric.glsl        # 空气透视
    ├─ lib/shadow.glsl             # 风格化阴影采样
+   ├─ lib/gbuffers_pass.glsl        # 共享 entity/hand/particle 输出
    ├─ shadow.vsh/.fsh             # 阴影贴图 pass
    ├─ shadow_water.vsh/.fsh       # 水面阴影
-   ├─ gbuffers_terrain.vsh/.fsh # 方块几何体：scene + GBuffer
+   ├─ shadow_entities.vsh/.fsh    # 生物阴影
+   ├─ gbuffers_terrain.vsh/.fsh   # 方块几何体
    ├─ gbuffers_water.vsh/.fsh     # 水面
+   ├─ gbuffers_entities.vsh/.fsh
+   ├─ gbuffers_entities_translucent.vsh/.fsh
+   ├─ gbuffers_block.vsh/.fsh
+   ├─ gbuffers_block_translucent.vsh/.fsh
+   ├─ gbuffers_hand.vsh/.fsh
+   ├─ gbuffers_hand_water.vsh/.fsh
+   ├─ gbuffers_spidereyes.vsh/.fsh
+   ├─ gbuffers_armor_glint.vsh/.fsh
+   ├─ gbuffers_lightning.vsh/.fsh
+   ├─ gbuffers_textured.vsh/.fsh
+   ├─ gbuffers_textured_lit.vsh/.fsh
+   ├─ gbuffers_weather.vsh/.fsh   # 雨雪
+   ├─ gbuffers_particles.vsh/.fsh
+   ├─ gbuffers_particles_translucent.vsh/.fsh # 粒子
    ├─ gbuffers_basic.vsh/.fsh     # 兜底 pass
    ├─ gbuffers_skybasic.vsh/.fsh  # 天空穹顶：昼夜渐变 + 程序云
    ├─ gbuffers_skytextured.vsh/.fsh # 太阳/月亮
@@ -213,7 +262,7 @@ GoldenHaze/
    └─ textures/canvas.png         # 纸张颗粒纹理
 ```
 
-Phase 2 将新增 `lib/`（共享 GLSL）、扩展 GBuffer 输出、补全 entities 等 pass。
+Phase 2 核心模块已全部落地；后续为调优与扩展（gbuffers_line 等待）。
 
 ## 如何测试
 
@@ -225,8 +274,7 @@ Phase 2 将新增 `lib/`（共享 GLSL）、扩展 GBuffer 输出、补全 entit
 
 ## 已知限制
 
-- 生物 / 手部 / 天气 / 粒子等 pass 未实现（走原版 fallback，风格断裂）。
-- Stylized shadow map 已在 terrain/water/basic 生效；entities 仍走 vanilla。
+- `gbuffers_line`（钓鱼线、选中方块轮廓）仍 fallback 到 `gbuffers_basic`。
 - 所有已实现效果的参数已接入光影设置界面，可在游戏内实时调节。
 
 ## 工具

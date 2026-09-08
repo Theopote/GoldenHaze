@@ -1,8 +1,16 @@
+/*
+ * gbuffers_water — stylized water (Phase 2.5)
+ * Palette body color + horizontal sun-band highlights.
+ */
 #version 120
 
 #include "/lib/painterly.glsl"
+#include "/lib/water.glsl"
 
 #define PAINTERLY_STRENGTH 1.0 // [0.00 0.25 0.50 0.75 1.00]
+#define WATER_STRENGTH     1.0 // [0.00 0.25 0.50 0.75 1.00]
+#define WATER_DIST_NEAR    4.0 // [2.0 4.0 8.0 12.0 16.0]
+#define WATER_DIST_FAR    40.0 // [24.0 40.0 64.0 96.0 128.0]
 #define SHADOW_STRENGTH    1.0 // [0.00 0.50 0.75 1.00]
 #define SHADOW_SOFTNESS    2.5 // [1.0 1.5 2.0 2.5 3.5 5.0]
 #define SHIMMER_STRENGTH   1.0 // [0.00 0.30 0.60 1.00 1.50 2.00]
@@ -19,21 +27,9 @@ varying vec4 vertexColor;
 varying vec3 worldPos;
 varying vec3 feetPlayerPos;
 varying vec3 normal;
+varying vec3 viewDir;
 
 /* DRAWBUFFERS:01 */
-
-float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
-
-float vnoise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i),               hash(i + vec2(1.0, 0.0)), u.x),
-               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
-               u.y);
-}
 
 void main() {
     vec4 albedo = texture2D(texture, texcoord) * vertexColor;
@@ -44,12 +40,11 @@ void main() {
                                    PAINTERLY_STRENGTH, feetPlayerPos,
                                    SHADOW_STRENGTH, SHADOW_SOFTNESS);
 
-    vec2 wp  = worldPos.xz;
-    float n1 = vnoise(wp * 1.6 + frameTimeCounter * vec2(0.35, 0.15));
-    float n2 = vnoise(wp * 2.3 - frameTimeCounter * vec2(0.22, 0.40));
-    float glint = smoothstep(0.72, 0.92, n1 * n2 * 2.0);
-    float sparkle = glint * lmcoord.y * SHIMMER_STRENGTH;
-    litColor += vec3(1.00, 0.88, 0.60) * sparkle * 0.8;
+    litColor = applyWaterShading(albedo.rgb, litColor, worldPos, feetPlayerPos,
+                                 normal, viewDir, sunPosition, lmcoord,
+                                 rainStrength, frameTimeCounter,
+                                 WATER_STRENGTH, SHIMMER_STRENGTH,
+                                 WATER_DIST_NEAR, WATER_DIST_FAR);
 
     gl_FragData[0] = vec4(litColor, albedo.a);
     gl_FragData[1] = packGBuffer(normal, MAT_WATER);

@@ -12,6 +12,12 @@
 #define MAT_FOLIAGE 1.0
 #define MAT_WATER   2.0
 #define MAT_SKY     3.0
+#define MAT_GRASS   4.0
+#define MAT_WOOD    5.0
+#define MAT_STONE   6.0
+#define MAT_SOIL    7.0
+#define MAT_SNOW    8.0
+#define MAT_ENTITY  9.0
 
 vec3 encodeNormal(vec3 n) {
     return normalize(n) * 0.5 + 0.5;
