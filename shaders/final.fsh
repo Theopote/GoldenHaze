@@ -5,13 +5,14 @@
  * 2. Adds restrained bloom (colortex2) and god rays (colortex3) as accents.
  * 3. Split-tones, tonemap, vignette, fixed screen-space paper grain.
  *
- * Post defaults assume Phase 2 stylized lighting is already doing the heavy
- * lifting — bloom/god-rays should read as atmosphere, not the main look.
+ * DEBUG_VIEW 1–8 visualize GBuffer / depth / lighting proxies for tuning.
  */
 #version 120
 
 #include "/lib/atmospheric.glsl"
+#include "/lib/debug.glsl"
 
+#define DEBUG_VIEW          0    // [0 1 2 3 4 5 6 7 8]
 #define BLOOM_STRENGTH        0.50 // [0.00 0.20 0.40 0.50 0.60 0.80 1.00 1.30]
 #define GODRAY_STRENGTH       0.32 // [0.00 0.20 0.32 0.45 0.60 0.90 1.20 1.60]
 #define WARMTH                0.85 // [0.00 0.30 0.60 0.85 1.00 1.40 1.80]
@@ -65,12 +66,12 @@ void main() {
     scene.g = texture2D(colortex0, texcoord).g;
     scene.b = texture2D(colortex0, texcoord - caOffset).b;
 
-    // --- atmospheric perspective (Phase 2.1) ---
+    vec4 gbuffer = texture2D(colortex1, texcoord);
     float depth = texture2D(depthtex0, texcoord).r;
     float linearZ = linearizeDepth(depth, near, far);
     float haze = computeHaze(linearZ, ATMOSPHERE_START, ATMOSPHERE_END);
 
-    float materialId = readMaterialId(texture2D(colortex1, texcoord));
+    float materialId = readMaterialId(gbuffer);
     if (isSkyMaterial(materialId)) {
         haze = 0.0;
     }
@@ -85,6 +86,14 @@ void main() {
         vec3 horizonColor = atmosphericHorizonColor(sunPosition, rainStrength);
         scene = applyAtmosphericPerspective(scene, haze, horizonColor);
     }
+
+#if DEBUG_VIEW != 0
+    vec3 bloomExtract = texture2D(colortex2, texcoord).rgb;
+    vec3 dbg = applyDebugView(DEBUG_VIEW, scene, gbuffer, depth, linearZ,
+                              haze, bloomExtract, sunPosition);
+    gl_FragColor = vec4(dbg, 1.0);
+    return;
+#endif
 
     vec3 bloom  = texture2D(colortex2, texcoord).rgb;
     vec3 shafts = texture2D(colortex3, texcoord).rgb;

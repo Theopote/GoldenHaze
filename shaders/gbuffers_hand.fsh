@@ -19,6 +19,7 @@ varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 normal;
+varying vec3 worldNormal;
 varying vec3 feetPlayerPos;
 
 /* DRAWBUFFERS:01 */
@@ -27,7 +28,7 @@ void main() {
     vec4 albedo = texture2D(texture, texcoord) * vertexColor;
     if (albedo.a < 0.1) discard;
 
-    writeEntityGbuffer(albedo.rgb, albedo.a, normal, lmcoord, feetPlayerPos,
+    writeEntityGbuffer(albedo.rgb, albedo.a, normal, worldNormal, lmcoord, feetPlayerPos,
                          sunPosition, rainStrength,
                          PALETTE_STRENGTH, PAINTERLY_STRENGTH,
                          SHADOW_STRENGTH, SHADOW_SOFTNESS);

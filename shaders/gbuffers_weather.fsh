@@ -14,6 +14,7 @@ varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 normal;
+varying vec3 worldNormal;
 varying vec3 feetPlayerPos;
 
 /* DRAWBUFFERS:01 */
@@ -23,5 +24,5 @@ void main() {
     if (albedo.a < 0.02) discard;
 
     writeWeatherGbuffer(albedo.rgb, albedo.a * vertexColor.a, lmcoord, normal,
-                        sunPosition, rainStrength);
+                        worldNormal, sunPosition, rainStrength);
 }

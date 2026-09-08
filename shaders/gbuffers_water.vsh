@@ -9,6 +9,7 @@ varying vec4 vertexColor;
 varying vec3 worldPos;
 varying vec3 feetPlayerPos;
 varying vec3 normal;
+varying vec3 worldNormal;
 varying vec3 viewDir;
 
 void main() {
@@ -21,5 +22,6 @@ void main() {
     feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
     worldPos      = feetPlayerPos + cameraPosition;
     normal        = normalize(gl_NormalMatrix * gl_Normal);
+    worldNormal   = normalize(mat3(gbufferModelViewInverse) * normal);
     viewDir       = normalize(cameraPosition - worldPos);
 }

@@ -18,6 +18,7 @@ varying vec2 texcoord;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 normal;
+varying vec3 worldNormal;
 varying vec3 feetPlayerPos;
 
 /* DRAWBUFFERS:01 */
@@ -26,7 +27,7 @@ void main() {
     vec4 albedo = texture2D(texture, texcoord) * vertexColor;
     if (albedo.a < 0.05) discard;
 
-    writeArmorGlintGbuffer(albedo.rgb, albedo.a, normal, lmcoord, feetPlayerPos,
-                            sunPosition, rainStrength,
+    writeArmorGlintGbuffer(albedo.rgb, albedo.a, normal, worldNormal, lmcoord,
+                            feetPlayerPos, sunPosition, rainStrength,
                             PAINTERLY_STRENGTH, SHADOW_STRENGTH, SHADOW_SOFTNESS);
 }

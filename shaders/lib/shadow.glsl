@@ -5,7 +5,7 @@
  * shape and broad penumbra, not PCSS realism.
  */
 
-const int   shadowMapResolution      = 2048;
+const int   shadowMapResolution      = 1024;
 const float shadowDistanceRenderMul  = 1.0;
 const bool  shadowtex0Nearest        = true;
 const bool  shadowtex0Mipmaps        = false;
@@ -48,7 +48,7 @@ float softShadowVisibility(vec3 feetPlayerPos, float bias, float radius) {
     baseClip.xyz  = distortShadowClipPos(baseClip.xyz);
 
     float accum = 0.0;
-    const int halfRange = 2;
+    const int halfRange = 1;
     float invRes = 1.0 / float(shadowMapResolution);
 
     for (int x = -halfRange; x <= halfRange; x++) {

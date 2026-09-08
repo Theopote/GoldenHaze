@@ -16,6 +16,8 @@ float resolveTerrainMaterial(float blockId) {
     if (blockId > 3.5 && blockId < 4.5) return MAT_STONE;
     if (blockId > 4.5 && blockId < 5.5) return MAT_SOIL;
     if (blockId > 5.5 && blockId < 6.5) return MAT_SNOW;
+    if (blockId > 6.5 && blockId < 7.5) return MAT_TERRACOTTA;
+    if (blockId > 7.5 && blockId < 8.5) return MAT_GLASS;
     return MAT_DEFAULT;
 }
 
@@ -27,6 +29,8 @@ vec3 materialAlbedoTint(float materialId) {
     if (abs(materialId - MAT_STONE)   < 0.5) return vec3(0.86, 0.90, 1.00);
     if (abs(materialId - MAT_SOIL)    < 0.5) return vec3(1.10, 0.94, 0.78);
     if (abs(materialId - MAT_SNOW)    < 0.5) return vec3(0.94, 0.98, 1.14);
+    if (abs(materialId - MAT_TERRACOTTA) < 0.5) return vec3(1.08, 0.78, 0.58);
+    if (abs(materialId - MAT_GLASS)   < 0.5) return vec3(0.88, 0.96, 1.04);
     if (abs(materialId - MAT_WATER)   < 0.5) return vec3(0.82, 0.98, 1.02);
     if (abs(materialId - MAT_ENTITY)  < 0.5) return vec3(1.02, 0.96, 0.90);
     return vec3(1.00);
@@ -63,6 +67,14 @@ void materialPaletteBands(float materialId, out vec3 shadowCol,
         shadowCol = vec3(0.52, 0.58, 0.72);
         midCol    = vec3(0.82, 0.86, 0.94);
         sunCol    = vec3(1.12, 1.08, 1.02);
+    } else if (abs(materialId - MAT_TERRACOTTA) < 0.5) {
+        shadowCol = vec3(0.42, 0.30, 0.26);
+        midCol    = vec3(0.82, 0.58, 0.42);
+        sunCol    = vec3(1.10, 0.78, 0.52);
+    } else if (abs(materialId - MAT_GLASS) < 0.5) {
+        shadowCol = vec3(0.38, 0.48, 0.58);
+        midCol    = vec3(0.72, 0.82, 0.92);
+        sunCol    = vec3(1.04, 1.02, 0.98);
     } else if (abs(materialId - MAT_WATER) < 0.5) {
         shadowCol = vec3(0.22, 0.42, 0.52);
         midCol    = vec3(0.48, 0.72, 0.78);

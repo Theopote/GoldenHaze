@@ -1,15 +1,18 @@
 /*
- * composite — bloom bright-pass extract
+ * composite — semantic bloom bright-pass extract
  *
- * Reads the lit scene (colortex0) and writes thresholded highlights
- * to colortex2. composite1/composite2 blur colortex2; composite3
- * god-rays sample the blurred result. colortex1 (GBuffer) is untouched.
+ * Reads lit scene (colortex0) + GBuffer material (colortex1). Only
+ * semantically bright surfaces (sun, sky, water, foliage, emissive)
+ * enter bloom — not every high-luma white block.
  */
 #version 120
+
+#include "/lib/bloom.glsl"
 
 #define BLOOM_THRESHOLD 0.62 // [0.30 0.40 0.50 0.55 0.62 0.70 0.80]
 
 uniform sampler2D colortex0;
+uniform sampler2D colortex1;
 
 varying vec2 texcoord;
 
@@ -17,9 +20,9 @@ varying vec2 texcoord;
 
 void main() {
     vec3 scene = texture2D(colortex0, texcoord).rgb;
+    float materialId = readMaterialId(texture2D(colortex1, texcoord));
 
-    float brightness = dot(scene, vec3(0.299, 0.587, 0.114));
-    float threshold  = smoothstep(BLOOM_THRESHOLD, BLOOM_THRESHOLD + 0.35, brightness);
+    float mask = semanticBloomMask(scene, materialId, BLOOM_THRESHOLD);
 
-    gl_FragData[0] = vec4(scene * threshold, 1.0);
+    gl_FragData[0] = vec4(scene * mask, 1.0);
 }

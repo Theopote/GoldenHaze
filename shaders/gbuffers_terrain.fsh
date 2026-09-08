@@ -26,6 +26,7 @@ varying vec4 vertexColor;
 varying vec3 worldPos;
 varying vec3 feetPlayerPos;
 varying vec3 normal;
+varying vec3 worldNormal;
 varying float blockId;
 
 /* DRAWBUFFERS:01 */
@@ -38,8 +39,8 @@ void main() {
     vec3 baseAlbedo = applyMaterialPalette(albedo.rgb, materialId, PALETTE_STRENGTH);
 
     vec3 vanillaLight = texture2D(lightmap, lmcoord).rgb;
-    vec3 litColor = shadePainterly(baseAlbedo, normal, sunPosition, lmcoord,
-                                   vanillaLight, materialId, rainStrength,
+    vec3 litColor = shadePainterly(baseAlbedo, normal, worldNormal, sunPosition,
+                                   lmcoord, vanillaLight, materialId, rainStrength,
                                    PAINTERLY_STRENGTH, feetPlayerPos,
                                    SHADOW_STRENGTH, SHADOW_SOFTNESS);
 

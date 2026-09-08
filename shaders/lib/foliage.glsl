@@ -86,16 +86,20 @@ vec3 foliageRimTranslucency(vec3 lit, vec3 normal, vec3 sunDir, float skyVis) {
 
 vec3 foliageSunFlecks(vec3 lit, vec3 worldPos, float skyVis,
                       float frameTime, float shimmerStrength) {
+    // Wind gust gates WHEN flecks appear; noise gates WHERE (not crawling UVs).
+    float gust = sin(frameTime * 0.70 + worldPos.x * 0.05 + worldPos.z * 0.04) * 0.5 + 0.5;
+    float gustGate = smoothstep(0.40, 0.76, gust);
+
     vec2 sp  = worldPos.xz * 2.5 + worldPos.yy * 1.7;
-    float n1 = foliageVnoise(sp * 3.0 + frameTime * vec2(0.9, 0.4));
-    float n2 = foliageVnoise(sp * 5.0 - frameTime * vec2(0.6, 0.8));
+    float n1 = foliageVnoise(sp * 3.0);
+    float n2 = foliageVnoise(sp * 5.0 + vec2(4.2, 1.8));
     float fleck = smoothstep(0.78, 0.95, n1 * n2 * 2.0);
 
     float volume = foliageVolumeNoise(worldPos);
     float onBrightMass = smoothstep(0.45, 0.75, volume);
 
-    float sparkle = fleck * skyVis * shimmerStrength * onBrightMass;
-    return lit + vec3(1.00, 0.85, 0.55) * sparkle * 0.65;
+    float sparkle = fleck * skyVis * shimmerStrength * onBrightMass * gustGate;
+    return lit + vec3(1.00, 0.85, 0.55) * sparkle * 0.55;
 }
 
 /*

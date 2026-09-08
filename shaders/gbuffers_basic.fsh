@@ -13,14 +13,15 @@ uniform float rainStrength;
 varying vec2 lmcoord;
 varying vec4 vertexColor;
 varying vec3 normal;
+varying vec3 worldNormal;
 varying vec3 feetPlayerPos;
 
 /* DRAWBUFFERS:01 */
 
 void main() {
     vec3 vanillaLight = texture2D(lightmap, lmcoord).rgb;
-    vec3 litColor = shadePainterly(vertexColor.rgb, normal, sunPosition, lmcoord,
-                                   vanillaLight, MAT_DEFAULT, rainStrength,
+    vec3 litColor = shadePainterly(vertexColor.rgb, normal, worldNormal, sunPosition,
+                                   lmcoord, vanillaLight, MAT_DEFAULT, rainStrength,
                                    PAINTERLY_STRENGTH, feetPlayerPos,
                                    SHADOW_STRENGTH, SHADOW_SOFTNESS);
 
